@@ -1,28 +1,77 @@
-using Mono.Cecil.Cil;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
-
+public enum MazeType { Standard, Chase, Collect, Doors }
 public class Spawner_Maze : MonoBehaviour
 {
+    List<MazeType> _mazeTypes;
+
     Cell[,] _cells;
+    Transform _cellParent;
+    int _cellCount = 0;
+    Cell _playerLastCell;
+    Cell _furthestCell;
+    int _maxDistance;
 
     int _rows = 20;
     int _columns = 20;
-    [SerializeField] int _visibility = 2;
+    int _visibility = 5;
+    int _wallBreaks = 100;
+    float _newPathChance = 0.8f;
 
     public bool Background = false;
     int[,] _startPosition;
 
+    Controller_Puzzle_MouseMaze _player;
+
+    #region Chaser
+    Pathfinder_MouseMaze _pathfinder;
+    Transform _chaserParent;
+    Dictionary<Chaser, Cell> _chasers = new();
+    int _chaserCount = 10;
+    float _chaserSpawnDelay = 5f;
+    float _chaserSpawnInterval = 2f;
+    float _chaserSpeed = 2f;
+    List<Cell> _playerPath = new();
+    #endregion
+    #region Collect
+    Transform _collectParent;
+    Dictionary<Collectable, bool> _collectables = new();
+    int _collectableMinimumDistance = 1;
+    int _collectableCount = 5;
+    #endregion
+    #region Door
+    Transform _doorParent;
+    Dictionary<Door_Base, bool> _doors = new();
+    Dictionary<Door_Key, bool> _keys = new();
+    int _keysMinimumDistance = 1;
+    int _doorCount = 1;
+    #endregion
     void Start()
     {
-        InitialisePuzzle();
+        List<MazeType> mazeTypes = new List<MazeType>();
+
+        mazeTypes.Add(MazeType.Standard);
+        mazeTypes.Add(MazeType.Collect);
+        mazeTypes.Add(MazeType.Chase);
+        mazeTypes.Add(MazeType.Collect);
+        mazeTypes.Add(MazeType.Doors);
+
+        InitialisePuzzle(mazeTypes);
     }
 
-    void InitialisePuzzle()
+    void InitialisePuzzle(List<MazeType> mazeTypes)
     {
+        _cellParent = GameObject.Find("CellParent").transform;
+        _chaserParent = GameObject.Find("ChaserParent").transform;
+        _collectParent = GameObject.Find("CollectParent").transform;
+        _doorParent = GameObject.Find("DoorParent").transform;
+        _player = GameObject.Find("Focus").GetComponent<Controller_Puzzle_MouseMaze>();
+        _player.OnBreakWall += BreakWall;
+
+        _mazeTypes = new List<MazeType>(mazeTypes);
         if (Manager_Puzzle.Instance.Puzzle.PuzzleData.PuzzleType == PuzzleType.Fixed) SpawnFixedPuzzle();
         else SpawnRandomPuzzle();
     }
@@ -44,12 +93,27 @@ public class Spawner_Maze : MonoBehaviour
             }
         }
 
-        //Cell startCell = _cells[Random.Range(0, _rows), Random.Range(0, _columns)];
-        Cell startCell = _cells[0, 0];
+        _startPosition = new int[_cells[0, 0].Row, _cells[0, 0].Col];
+        _pathfinder = new Pathfinder_MouseMaze(_rows, _columns, _cells[_cells[0, 0].Row, _cells[0, 0].Col].Node, _cells[_furthestCell.Row, _furthestCell.Col].Node);
 
-        _startPosition = new int[startCell.Row, startCell.Col];
-
-        CreateMaze(null, startCell);
+        CreateMaze(null, _cells[0, 0], 0);
+        if (_mazeTypes.Contains(MazeType.Standard)) _furthestCell.MarkFurthestCell();
+        if (_mazeTypes.Contains(MazeType.Chase)) StartCoroutine(SpawnChasers());
+        if (_mazeTypes.Contains(MazeType.Collect) && _collectables.Count < _collectableCount)
+        {
+            for (int i = 0; i < (_collectableCount - _collectables.Count); i++) 
+            {
+                SpawnCollectable(_cells[Random.Range(1, _rows), Random.Range(1, _columns)].transform.position); 
+            } 
+        }
+        if (_mazeTypes.Contains(MazeType.Doors))
+        {
+            for (int i = 0; i < _doorCount; i++)
+            {
+                // Change this to account for multiple doors
+                SpawnKey(SpawnDoor(_furthestCell));
+            }
+        }
     }
 
     Cell CreateCell(int row, int col)
@@ -57,54 +121,75 @@ public class Spawner_Maze : MonoBehaviour
         GameObject cellGO = new GameObject($"cell{row}{col}");
         cellGO.transform.position = new Vector3(row, col, 0);
         cellGO.transform.rotation = Quaternion.identity;
-        cellGO.transform.parent = transform;
+        cellGO.transform.parent = _cellParent;
         Cell cell = cellGO.AddComponent<Cell>();
         cell.InitialiseCell(row, col, this);
+
         return cell;
     }
 
-    void CreateMaze(Cell previousCell, Cell currentCell)
+    void CreateMaze(Cell previousCell, Cell currentCell, int distanceFromStart)
     {
         currentCell.Visited = true;
+        _cellCount++;
+
+        if (_mazeTypes.Contains(MazeType.Collect) && _collectables.Count < _collectableCount && _cellCount > _collectableMinimumDistance && Random.Range(0, 100) > 98) { SpawnCollectable(currentCell.transform.position); }
+
         ClearWalls(previousCell, currentCell);
+
+        if (distanceFromStart > _maxDistance)
+        {
+            _maxDistance = distanceFromStart;
+            _furthestCell = currentCell;
+        }
 
         var unvisitedNeighbors = GetNextUnvisitedCell(currentCell).OrderBy(_ => Random.Range(1, 10)).ToList();
 
-        foreach (Cell nextCell in unvisitedNeighbors)
+        if (Random.Range(0, 1f) < _newPathChance && unvisitedNeighbors.Count > 0)
         {
-            if (nextCell != null && !nextCell.Visited) CreateMaze(currentCell, nextCell);
+            foreach(Cell nextCell in unvisitedNeighbors)
+            {
+                if (nextCell != null && !nextCell.Visited) CreateMaze(currentCell, unvisitedNeighbors[Random.Range(0, unvisitedNeighbors.Count)], distanceFromStart + 1);
+            }
+        }
+        else
+        {
+            foreach (Cell nextCell in unvisitedNeighbors)
+            {
+                if (nextCell != null && !nextCell.Visited) CreateMaze(currentCell, nextCell, distanceFromStart + 1);
+            }
         }
     }
 
-    void ClearWalls(Cell previousCell, Cell currentCell)
+    void ClearWalls(Cell currentCell, Cell nextCell)
     {
-        if (previousCell == null) return;
+        if (currentCell == null) return;
 
-        if (previousCell.transform.position.x < currentCell.transform.position.x)
+        if (currentCell.transform.position.x < nextCell.transform.position.x)
         {
-            previousCell.ClearWall(Wall.Right);
-            currentCell.ClearWall(Wall.Left);
-            return;
-        }
-
-        if (previousCell.transform.position.x > currentCell.transform.position.x)
-        {
-            previousCell.ClearWall(Wall.Left);
             currentCell.ClearWall(Wall.Right);
+            nextCell.ClearWall(Wall.Left);
             return;
         }
 
-        if (previousCell.transform.position.y < currentCell.transform.position.y)
+        if (currentCell.transform.position.x > nextCell.transform.position.x)
         {
-            previousCell.ClearWall(Wall.Top);
-            currentCell.ClearWall(Wall.Bottom);
+            currentCell.ClearWall(Wall.Left);
+            nextCell.ClearWall(Wall.Right);
             return;
         }
 
-        if (previousCell.transform.position.y > currentCell.transform.position.y)
+        if (currentCell.transform.position.y < nextCell.transform.position.y)
         {
-            previousCell.ClearWall(Wall.Bottom);
             currentCell.ClearWall(Wall.Top);
+            nextCell.ClearWall(Wall.Bottom);
+            return;
+        }
+
+        if (currentCell.transform.position.y > nextCell.transform.position.y)
+        {
+            currentCell.ClearWall(Wall.Bottom);
+            nextCell.ClearWall(Wall.Top);
             return;
         }
     }
@@ -116,61 +201,233 @@ public class Spawner_Maze : MonoBehaviour
 
         if (x + 1 < _rows)
         {
-            var cellToRight = _cells[x + 1, y];
-
-            if (cellToRight.Visited == false)
-            {
-                yield return cellToRight;
-            }
+            if (!_cells[x + 1, y].Visited) yield return _cells[x + 1, y];
+            
         }
 
         if (x - 1 >= 0)
         {
-            var cellToLeft = _cells[x - 1, y];
-
-            if (cellToLeft.Visited == false)
-            {
-                yield return cellToLeft;
-            }
+            if (!_cells[x - 1, y].Visited) yield return _cells[x - 1, y];
+            
         }
 
         if (y + 1 < _columns)
         {
-            var cellToFront = _cells[x, y + 1];
-
-            if (cellToFront.Visited == false)
-            {
-                yield return cellToFront;
-            }
+            if (!_cells[x, y + 1].Visited) yield return _cells[x, y + 1];
+            
         }
 
         if (y - 1 >= 0)
         {
-            var cellToBack = _cells[x, y - 1];
-
-            if (cellToBack.Visited == false)
-            {
-                yield return cellToBack;
-            }
+            if (!_cells[x, y - 1].Visited) yield return _cells[x, y - 1];
         }
+    }
+
+    void SpawnCollectable(Vector3 position)
+    {
+        GameObject collectableGO = new GameObject($"Collectable_{_collectables.Count}");
+        collectableGO.transform.parent = _collectParent;
+        collectableGO.transform.position = position;
+        Collectable collectable = collectableGO.AddComponent<Collectable>();
+        _collectables.Add(collectable, false);
+        collectable.SpawnCollectable(this);
+    }
+
+    IEnumerator SpawnChasers()
+    {
+        yield return new WaitForSeconds(_chaserSpawnDelay);
+
+        for (int i = 0; i < _chaserCount; i++)
+        {
+            SpawnChaser();
+
+            yield return new WaitForSeconds(_chaserSpawnInterval);
+        }
+    }
+
+    void SpawnChaser()
+    {
+        GameObject chaserGO = new GameObject($"Chaser_{_chasers.Count}");
+        chaserGO.transform.parent = _chaserParent;
+        Chaser chaser = chaserGO.AddComponent<Chaser>();
+        _chasers.Add(chaser, _playerPath[0]);
+        SpriteRenderer chaserSprite = chaser.AddComponent<SpriteRenderer>();
+        chaserSprite.sprite = Resources.Load<Sprite>("Sprites/Mine");
+        chaserSprite.sortingLayerName = "Actors";
+    }
+
+    Door_Base SpawnDoor(Cell cell)
+    {
+        GameObject doorGO = new GameObject($"Door_{_doors.Count}");
+        doorGO.transform.parent = _doorParent;
+        Door_Base door = doorGO.AddComponent<Door_Base>();
+        door.InitialiseDoor(MouseMazeColour.Blue, Color.blue, cell);
+        _doors.Add(door, true);
+        return door;
+    }
+
+    void SpawnKey(Door_Base door)
+    {
+        GameObject keyGO = new GameObject($"Key_{_doors.Count}");
+        keyGO.transform.parent = door.transform;
+        keyGO.transform.localPosition = _cells[Random.Range(_keysMinimumDistance, _rows), Random.Range(_keysMinimumDistance, _columns)].transform.position;
+        Door_Key key = keyGO.AddComponent<Door_Key>();
+        key.InitialiseDoorKey(door.MouseMazeDoorColour, door.DoorColor);
+        _keys.Add(key, false);
     }
 
     public void RefreshMaze(Cell playerCell)
     {
-        int playerX = playerCell.Row;
-        int playerY = playerCell.Col;
+        _playerLastCell = playerCell;
 
         for (int row = 0; row < _rows; row++)
         {
             for (int col = 0; col < _columns; col++)
             {
-                Cell cell = _cells[row, col];
+                if (Mathf.Abs(playerCell.Row - row) + Mathf.Abs(playerCell.Col - col) <= _visibility) _cells[row, col].Show();
+                else _cells[row, col].Hide();
+            }
+        }
 
-                int distance = Mathf.Abs(playerX - row) + Mathf.Abs(playerY - col);
+        AddToPath(playerCell);
+    }
 
-                if (distance <= _visibility) cell.Show();
-                else cell.Hide();
+    void AddToPath(Cell playerCell)
+    {
+        if (!_playerPath.Contains(playerCell)) _playerPath.Add(playerCell);
+        else
+        {
+            RefreshChaserPaths();
+            int index = _playerPath.IndexOf(playerCell);
+            int countToRemove = _playerPath.Count - (index + 1);
+            if (countToRemove > 0) _playerPath.RemoveRange(index + 1, countToRemove);
+        }
+    }
+
+    void Update()
+    {
+        if (_mazeTypes.Contains(MazeType.Chase) && _chasers.Count > 0) MoveChasers();
+    }
+
+    //void MoveChasers()
+    //{
+    //    List<Chaser> chasersToUpdate = new List<Chaser>();
+
+    //    foreach (KeyValuePair<Chaser, Cell> chaser in _chasers)
+    //    {
+    //        if (Vector2.Distance(chaser.Key.transform.position, chaser.Value.transform.position) < 0.1f) chasersToUpdate.Add(chaser.Key);
+    //        else chaser.Key.transform.position += (chaser.Value.transform.position - chaser.Key.transform.position).normalized * Time.deltaTime * _chaserSpeed;
+    //    }
+
+    //    foreach (Chaser chaser in chasersToUpdate)
+    //    {
+    //        _chasers[chaser] = _playerPath[_playerPath.IndexOf(_chasers[chaser]) + 1];
+    //    }
+    //}
+
+    void MoveChasers()
+    {
+        foreach (var chaser in _chasers)
+        {
+            chaser.Key.transform.position = Vector3.MoveTowards(chaser.Key.transform.position, chaser.Value.transform.position, _chaserSpeed * Time.deltaTime);
+
+            if (Vector3.Distance(chaser.Key.transform.position, chaser.Value.transform.position) < 0.1f)
+            {
+                _chasers[chaser.Key]++; 
+                // Update chaser's current cell
+                // You might want to track the chaser's current cell as well
+                // _chasers[chaser] = the next cell on the path
             }
         }
     }
+
+    void BreakWall()
+    {
+        if (_wallBreaks <= 0) { return; }
+
+        _wallBreaks--;
+
+        int row = _playerLastCell.Row;
+        int col = _playerLastCell.Col;
+
+        Cell closestCell = null; float minDistance = float.MaxValue;
+
+        CheckNeighbor(row - 1, col);
+        CheckNeighbor(row + 1, col);
+        CheckNeighbor(row, col - 1);
+        CheckNeighbor(row, col + 1);
+
+        void CheckNeighbor(int neighborRow, int neighborCol)
+        {
+            if (neighborRow < 0 || neighborRow >= _rows || neighborCol < 0 || neighborCol >= _columns) return;
+
+            float distance = Vector3.Distance(_cells[neighborRow, neighborCol].transform.position, _player.transform.position);
+
+            if (distance > minDistance) return;
+
+            minDistance = distance;
+
+            closestCell = _cells[neighborRow, neighborCol];
+        }
+
+        ClearWalls(_playerLastCell, closestCell);
+        _pathfinder.HandlePathChange(closestCell.Node, true);
+
+        if (_mazeTypes.Contains(MazeType.Chase)) RefreshChaserPaths();
+    }
+
+    void RefreshChaserPaths()
+    {
+        List<Chaser> chasers = new List<Chaser>();
+        List<Cell> cells = new List<Cell>();
+
+        foreach (var chaser in _chasers)
+        {
+            Cell closestCell = _playerPath[_playerPath.Count - 1];
+            float minimumDistance = Vector3.Distance(chaser.Key.transform.position, _playerLastCell.transform.position);
+
+            foreach (Cell cell in _playerPath)
+            {
+                float distanceToCell = Vector3.Distance(chaser.Key.transform.position, cell.transform.position);
+                if (distanceToCell < minimumDistance) { minimumDistance = distanceToCell; closestCell = cell; }
+            }
+
+            chasers.Add(chaser.Key);
+            cells.Add(closestCell);
+        }
+
+        for (int i = 0; i < chasers.Count; i++)
+        {
+            _chasers[chasers[i]] = cells[i];
+        }
+
+        foreach (var chaser in _chasers)
+        {
+            List<Node> path = _pathfinder.ComputeShortestPath();
+
+            if (path.Count > 1)
+            {
+                Node nextNode = path[1];
+                Cell nextCell = _cells[nextNode.X, nextNode.Y];
+                _chasers[chaser.Key] = nextCell;
+            }
+        }
+    }
+
+    void OnDestroy()
+    {
+        _player.OnBreakWall -= BreakWall;
+    }
+
+    public void CollectableCollected(Collectable collectable)
+    {
+        if (!_collectables.ContainsKey(collectable)) return;
+
+        _collectables[collectable] = true;
+        collectable.gameObject.SetActive(false);
+
+        if (_collectables.Count > 0) return;
+
+        // Collectible objective completed.
+    }    
 }

@@ -74,6 +74,7 @@ public class Manager_Puzzle : MonoBehaviour
             case PuzzleSet.Directional:
             case PuzzleSet.AntiDirectional:
             case PuzzleSet.FlappyInvaders:
+            case PuzzleSet.MouseMaze:
                 setActive = true;
                 break;
             case PuzzleSet.XOYXOY:

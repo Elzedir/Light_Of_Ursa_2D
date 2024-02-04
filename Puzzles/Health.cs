@@ -20,6 +20,11 @@ public class Health : MonoBehaviour
         Manager_Puzzle.Instance.OnTakeHit += Hit;
     }
 
+    void OnDestroy()
+    {
+        Manager_Puzzle.Instance.OnTakeHit -= Hit;
+    }
+
     public void Hit()
     {
         foreach (GameObject heart in _hearts)

@@ -4,12 +4,14 @@ using static UnityEditor.Experimental.GraphView.GraphView;
 public class Controller : MonoBehaviour
 {
     public KeyBindings KeyBindings;
+    protected SpriteRenderer _spriteRenderer;
 
     void Awake()
     {
         KeyBindings = new KeyBindings();
         KeyBindings.LoadBindings();
         KeyBindings.InitialiseKeyActions(this);
+        _spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
     protected virtual void Update()
