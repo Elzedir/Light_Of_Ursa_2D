@@ -1,14 +1,15 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public enum Wall { Top, Bottom, Left, Right }
 
 public class Cell : MonoBehaviour
 {
     public Node Node { get; private set; }
-    public int Row { get; private set; }
-    public int Col { get; private set; }
+    public Coordinates Coordinates { get; private set; }
 
     SpriteRenderer _spriteBase;
     SpriteRenderer _spriteRenderer;
@@ -24,14 +25,10 @@ public class Cell : MonoBehaviour
 
     Spawner_Maze _spawner;
     
-    public void InitialiseCell(int row, int col, Spawner_Maze spawner)
+    public void InitialiseCell(Coordinates coordinates, Spawner_Maze spawner)
     {
-        Row = row;
-        Col = col;
+        Coordinates = coordinates;
         _spawner = spawner;
-
-        Node = new Node(row, col);
-        Node.IsPassable = DeterminePassability();
 
         _spriteBase = gameObject.AddComponent<SpriteRenderer>();
         if (_spawner.Background) _spriteBase.sprite = Resources.Load<Sprite>("Sprites/White ground");
@@ -48,6 +45,16 @@ public class Cell : MonoBehaviour
         _colliderBottom = CreateSideCollider(Wall.Bottom);
         _colliderLeft = CreateSideCollider(Wall.Left);
         _colliderRight = CreateSideCollider(Wall.Right);
+
+        GameObject textGO = new GameObject();
+        textGO.transform.parent = transform;
+        textGO.transform.localPosition = Vector3.zero;
+        TextMeshPro text = textGO.AddComponent<TextMeshPro>();
+        text.text = $"{Coordinates.X}_{Coordinates.Y}";
+        text.alignment = TextAlignmentOptions.Center;
+        text.sortingLayerID = -967159649;
+        text.fontSize = 3; text.color = Color.black;
+
     }
 
     BoxCollider2D CreateSideCollider(Wall wall)
@@ -64,11 +71,6 @@ public class Cell : MonoBehaviour
         }
 
         return collider;
-    }
-
-    bool DeterminePassability()
-    {
-        return !(Sides[Wall.Top] && Sides[Wall.Bottom] && Sides[Wall.Left] && Sides[Wall.Right]);
     }
 
     public void ClearWall(Wall wall)
@@ -88,10 +90,10 @@ public class Cell : MonoBehaviour
 
         switch (wall)
         {
-            case Wall.Top: if (_colliderTop != null) Destroy(_colliderTop.gameObject); break;
-            case Wall.Bottom: if (_colliderBottom != null) Destroy(_colliderBottom.gameObject); break;
-            case Wall.Left: if (_colliderLeft != null) Destroy(_colliderLeft.gameObject); break;
-            case Wall.Right: if (_colliderRight != null) Destroy(_colliderRight.gameObject); break;
+            case Wall.Top: if (_colliderTop != null) Destroy(_colliderTop.gameObject); break; // Node.IsPassableTop = true; 
+            case Wall.Bottom: if (_colliderBottom != null) Destroy(_colliderBottom.gameObject); break;// Node.IsPassableBottom = true;
+            case Wall.Left: if (_colliderLeft != null) Destroy(_colliderLeft.gameObject); break; // Node.IsPassableLeft = true;
+            case Wall.Right: if (_colliderRight != null) Destroy(_colliderRight.gameObject); break; //Node.IsPassableRight = true;
             default: break;
         }
 
@@ -138,15 +140,13 @@ public class Cell : MonoBehaviour
 
         if (sprite != null) _spriteRenderer.sprite = sprite;
         else Debug.Log("Sprite not found.");
-
-        Node.IsPassable = DeterminePassability();
     }
 
     void OnTriggerEnter2D(Collider2D collider)
     {
-        if (collider.gameObject.name != "Focus") return;
-
-        _spawner.RefreshMaze(this);
+        if (collider.gameObject.name == "Focus") _spawner.RefreshMaze(this);
+        else if (collider.TryGetComponent<Chaser>(out Chaser chaser)) chaser.CurrentCell = this;
+        
     }
 
     public void Show()
