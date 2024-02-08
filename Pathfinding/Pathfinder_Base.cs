@@ -1,4 +1,3 @@
-using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -27,10 +26,16 @@ public class Pathfinder_Base
 
         _computeShortestPath();
 
-        while (!_startNode.Equals(_targetNode))
+        Debug.Log($"{_startNode.X}_{_startNode.Y} -> {_targetNode.X}_{_targetNode.Y}");
+
+        int infiniteCheck = 0;
+
+        while (!_startNode.Equals(_targetNode) && infiniteCheck < 10000)
         {
             _startNode = _minimumSuccessorNode(_startNode);
+
             environment.MoveTo(new Coordinates(_startNode.X, _startNode.Y));
+
             LinkedList<Coordinates> obstacleCoordinates = environment.GetObstaclesInVision();
             double oldPriorityModifier = _priorityModifier;
             Node oldLastNode = lastNode;
@@ -55,7 +60,9 @@ public class Pathfinder_Base
                 lastNode = oldLastNode;
             }
             _computeShortestPath();
+            infiniteCheck++;
         }
+        Debug.Log(infiniteCheck);
     }
     static Priority _calculatePriority(Node node)
     {
@@ -203,26 +210,47 @@ public class Pathfinder_Base
         return null;
     }
 
-    public static void RunPathfinderForChaser(Chaser chaser, PathfinderEnvironment environment)
+    public static void RunPathfinderForChaser(Chaser chaser, PathfinderEnvironment environment, Cell[,] cells)
     {
-        Node startNode = chaser.StartNode;
+        Debug.Log("2");
+        Node startNode = chaser.GetStartNode();
         Node targetNode = chaser.TargetNode;
 
         Node currentNode = startNode;
 
-        while (!currentNode.Equals(targetNode))
+        Debug.Log($"{currentNode.X}_{currentNode.Y} -> {targetNode.X}_{targetNode.Y}");
+
+        int infiniteCheck = 0;
+
+        while (!currentNode.Equals(targetNode) && infiniteCheck < 1000)
         {
+            Debug.Log("3");
             currentNode = _minimumSuccessorNode(currentNode);
-            environment.MoveTo(new Coordinates(currentNode.X, currentNode.Y));
+            _moveChaser(chaser, cells, new Coordinates(currentNode.X, currentNode.Y));
 
             _computeShortestPathForChaser(currentNode, targetNode);
+
+            infiniteCheck++;
         }
+
+        Debug.Log(infiniteCheck);
+    }
+
+    static void _moveChaser(Chaser chaser, Cell[,] cells, Coordinates coordinates)
+    {
+        Vector3 nextPosition = cells[coordinates.X, coordinates.Y].transform.position;
+
+        chaser.transform.position = Vector3.MoveTowards(chaser.transform.position, nextPosition, chaser.ChaserSpeed * Time.deltaTime);
     }
 
     static void _computeShortestPathForChaser(Node startNode, Node targetNode)
     {
+        Debug.Log("4");
+
         while (_mainPriorityQueue.Peek().CompareTo(_calculatePriority(startNode)) < 0 || startNode.RHS != startNode.G)
         {
+            Debug.Log("5");
+
             Priority highestPriority = _mainPriorityQueue.Peek();
             Node node = _mainPriorityQueue.Dequeue();
             if (node == null) break;

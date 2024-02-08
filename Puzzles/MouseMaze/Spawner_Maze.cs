@@ -266,9 +266,14 @@ public class Spawner_Maze : MonoBehaviour, PathfinderEnvironment
         chaserGO.transform.parent = _chaserParent;
         Chaser chaser = chaserGO.AddComponent<Chaser>();
         _chasers.Add(chaser);
+        chaser.CurrentCell = _cells[0,0];
         SpriteRenderer chaserSprite = chaser.AddComponent<SpriteRenderer>();
         chaserSprite.sprite = Resources.Load<Sprite>("Sprites/Mine");
         chaserSprite.sortingLayerName = "Actors";
+
+        Node playerNode = Pathfinder_Base.GetNodeAtPosition(_playerLastCell.Coordinates.X, _playerLastCell.Coordinates.Y);
+        chaser.TargetNode = playerNode;
+        Pathfinder_Base.RunPathfinder(_rows, _columns, 0, 0, playerNode.X, playerNode.Y, this); // Adapt to be start position of chaser.
     }
 
     Door_Base SpawnDoor(Cell cell)
@@ -358,13 +363,21 @@ public class Spawner_Maze : MonoBehaviour, PathfinderEnvironment
     {
         foreach (var chaser in _chasers)
         {
+            Debug.Log(chaser);
+            Debug.Log(chaser.CurrentCell);
+            Debug.Log(chaser.CurrentCell.Coordinates);
+            Debug.Log(chaser.TargetNode);
+
+            chaser.TargetNode = Pathfinder_Base.GetNodeAtPosition(_playerLastCell.Coordinates.X, _playerLastCell.Coordinates.Y);
+
             if (chaser.CurrentCell.Coordinates != new Coordinates(chaser.TargetNode.X, chaser.TargetNode.Y))
             {
-                Pathfinder_Base.RunPathfinderForChaser(chaser, this);
+                Debug.Log("1");
+
+                Pathfinder_Base.RunPathfinderForChaser(chaser, this, _cells);
             }
         }
         yield return new WaitForSeconds(1);
-
     }
 
     void OnDestroy()
@@ -393,6 +406,7 @@ public class Spawner_Maze : MonoBehaviour, PathfinderEnvironment
 
     public void MoveTo(Coordinates target)
     {
+        return;
         StartCoroutine(MoveChasers(target));
     }
 
