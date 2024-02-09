@@ -146,7 +146,6 @@ public class Cell : MonoBehaviour
     {
         if (collider.gameObject.name == "Focus") _spawner.RefreshMaze(this);
         else if (collider.TryGetComponent<Chaser>(out Chaser chaser)) chaser.CurrentCell = this;
-        
     }
 
     public void Show()
@@ -161,8 +160,8 @@ public class Cell : MonoBehaviour
         _spriteRenderer.enabled = false;
     }
 
-    public void MarkFurthestCell()
+    public void MarkCell(Color color)
     {
-        _spriteRenderer.color = Color.red;
+        _spriteRenderer.color = color;
     }
 }

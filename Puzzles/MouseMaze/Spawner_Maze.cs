@@ -5,7 +5,7 @@ using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
 public enum MazeType { Standard, Chase, Collect, Doors }
-public class Spawner_Maze : MonoBehaviour, PathfinderEnvironment
+public class Spawner_Maze : MonoBehaviour
 {
     List<MazeType> _mazeTypes;
 
@@ -32,7 +32,7 @@ public class Spawner_Maze : MonoBehaviour, PathfinderEnvironment
     Transform _chaserParent;
     List<Chaser> _chasers;
     int _chaserCount = 1;
-    float _chaserSpawnDelay = 2f;
+    float _chaserSpawnDelay = 4f;
     float _chaserSpawnInterval = 2f;
     float _chaserSpeed = 2f;
     #endregion
@@ -95,11 +95,11 @@ public class Spawner_Maze : MonoBehaviour, PathfinderEnvironment
 
         _startPosition = _cells[0, 0].Coordinates;
 
-        Pathfinder_Base.RunPathfinder(_rows, _columns, 0, 0, 0, 0, this);
+        NodeArray.Nodes = NodeArray.InitializeArray(_rows, _columns);
 
         CreateMaze(null, _cells[0, 0], 0);
 
-        if (_mazeTypes.Contains(MazeType.Standard)) _furthestCell.MarkFurthestCell();
+        if (_mazeTypes.Contains(MazeType.Standard)) _furthestCell.MarkCell(Color.red);
         if (_mazeTypes.Contains(MazeType.Chase)) StartCoroutine(SpawnChasers());
         if (_mazeTypes.Contains(MazeType.Collect) && _collectables.Count < _collectableCount)
         {
@@ -270,10 +270,18 @@ public class Spawner_Maze : MonoBehaviour, PathfinderEnvironment
         SpriteRenderer chaserSprite = chaser.AddComponent<SpriteRenderer>();
         chaserSprite.sprite = Resources.Load<Sprite>("Sprites/Mine");
         chaserSprite.sortingLayerName = "Actors";
-
+        chaser.Cells = _cells;
+        BoxCollider2D chaserColl = gameObject.AddComponent<BoxCollider2D>();
+        chaserColl.size = new Vector3(1, 1, 1);
+        chaserColl.isTrigger = true;
         Node playerNode = Pathfinder_Base.GetNodeAtPosition(_playerLastCell.Coordinates.X, _playerLastCell.Coordinates.Y);
-        chaser.TargetNode = playerNode;
-        Pathfinder_Base.RunPathfinder(_rows, _columns, 0, 0, playerNode.X, playerNode.Y, this); // Adapt to be start position of chaser.
+        chaser.Pathfinder = new Pathfinder_Base();
+        RunCoroutine(chaser.Pathfinder.RunPathfinder(_rows, _columns, 0, 0, playerNode.X, playerNode.Y, chaser, this)); // Adapt to be start position of chaser.
+    }
+
+    void RunCoroutine(IEnumerator routine)
+    {
+        StartCoroutine(routine);
     }
 
     Door_Base SpawnDoor(Cell cell)
@@ -352,32 +360,8 @@ public class Spawner_Maze : MonoBehaviour, PathfinderEnvironment
 
         foreach (var chaser in _chasers)
         {
-            //Node chaserNode = Pathfinder_Base.GetNodeAtPosition(chaser.Key.CurrentCell.Row, chaser.Key.CurrentCell.Col);
-            //Node playerNode = Pathfinder_Base.GetNodeAtPosition(_playerLastCell.Row, _playerLastCell.Col);
-
-            //List<Node> path = Pathfinder_Base.ComputePath(chaserNode, playerNode);
+            chaser.Cells = _cells;
         }
-    }
-
-    IEnumerator MoveChasers(Coordinates target)
-    {
-        foreach (var chaser in _chasers)
-        {
-            Debug.Log(chaser);
-            Debug.Log(chaser.CurrentCell);
-            Debug.Log(chaser.CurrentCell.Coordinates);
-            Debug.Log(chaser.TargetNode);
-
-            chaser.TargetNode = Pathfinder_Base.GetNodeAtPosition(_playerLastCell.Coordinates.X, _playerLastCell.Coordinates.Y);
-
-            if (chaser.CurrentCell.Coordinates != new Coordinates(chaser.TargetNode.X, chaser.TargetNode.Y))
-            {
-                Debug.Log("1");
-
-                Pathfinder_Base.RunPathfinderForChaser(chaser, this, _cells);
-            }
-        }
-        yield return new WaitForSeconds(1);
     }
 
     void OnDestroy()
@@ -402,16 +386,5 @@ public class Spawner_Maze : MonoBehaviour, PathfinderEnvironment
         if (row >= 0 && row < _cells.GetLength(0) && col >= 0 && col < _cells.GetLength(1)) return _cells[row, col];
         
         return null;
-    }
-
-    public void MoveTo(Coordinates target)
-    {
-        return;
-        StartCoroutine(MoveChasers(target));
-    }
-
-    public LinkedList<Coordinates> GetObstaclesInVision()
-    {
-        return new LinkedList<Coordinates>();
     }
 }
