@@ -6,12 +6,28 @@ using UnityEngine;
 public class Chaser : MonoBehaviour, PathfinderMover
 {
     public Pathfinder_Base Pathfinder { get; set; }
-    public Cell[,] Cells;
-    public Cell CurrentCell;
-    public Node Target;
-    public float ChaserSpeed { get; private set; } = 1;
+    public Cell_MouseMaze CurrentCell;
+    float _chaserSpeed;
 
-    bool _isCoroutineRunning;
+    Coroutine _chasingCoroutine;
+    public Spawner_Maze Spawner;
+
+    public void InitialiseChaser(Cell_MouseMaze startCell, Spawner_Maze spawner, float chaserSpeed = 1)
+    {
+        CurrentCell = startCell;
+        Spawner = spawner;
+        SpriteRenderer chaserSprite = gameObject.AddComponent<SpriteRenderer>();
+        chaserSprite.sprite = Resources.Load<Sprite>("Sprites/Mine");
+        chaserSprite.sortingLayerName = "Actors";
+        BoxCollider2D chaserColl = gameObject.AddComponent<BoxCollider2D>();
+        chaserColl.size = new Vector3(0.4f, 0.4f, 0.4f);
+        chaserColl.isTrigger = true;
+        Rigidbody2D chaserBody = gameObject.AddComponent<Rigidbody2D>();
+        chaserBody.gravityScale = 0;
+        chaserBody.freezeRotation = true;
+        Pathfinder = new Pathfinder_Base();
+        _chaserSpeed = chaserSpeed;
+    }
 
     public Node GetStartNode()
     {
@@ -24,50 +40,38 @@ public class Chaser : MonoBehaviour, PathfinderMover
 
     public void MoveTo(Node target)
     {
-        if (_isCoroutineRunning) return;
+        if (_chasingCoroutine != null) StopChasing();
 
-        Debug.Log($"Predecessor2: {Pathfinder_Base.PredecessorLoopCheck(GetStartNode(), 1000)}");
-
-        Target = target;
-
-        Debug.Log($"Predecessor2: {Pathfinder_Base.PredecessorLoopCheck(GetStartNode(), 1000)}");
-
-        List<Coordinates> path = Pathfinder.RetrievePath(GetStartNode(), target);
-
-        StartCoroutine(FollowPath(path));
+        _chasingCoroutine = StartCoroutine(FollowPath(Pathfinder.RetrievePath(GetStartNode(), target)));
     }
 
     IEnumerator FollowPath(List<Coordinates> path)
     {
-        _isCoroutineRunning = true;
-
-        int test = 0;
-
-        foreach (var coord in path)
+        foreach (Coordinates coordinate in path)
         {
-            Debug.Log($"Chaser Path: {coord.X}_{coord.Y}");
-            test++;
+            yield return Move(Spawner.Cells[coordinate.X, coordinate.Y].transform.position);
         }
 
-        Debug.Log(test);
-
-        foreach (var coord in path)
-        {
-            Vector3 nextPosition = Cells[coord.X, coord.Y].transform.position;
-
-            yield return Move(nextPosition);
-        }
+        _chasingCoroutine = null;
+        Spawner.GetNewRoute(this);
     }
 
     IEnumerator Move(Vector3 nextPosition)
     {
         while (Vector3.Distance(transform.position, nextPosition) > 0.1f)
         {
-            transform.position = Vector3.MoveTowards(transform.position, nextPosition, ChaserSpeed * Time.deltaTime);
+            transform.position = Vector3.MoveTowards(transform.position, nextPosition, _chaserSpeed * Time.deltaTime);
+            if (_chasingCoroutine == null) break;
             yield return null;
         }
+    }
 
-        _isCoroutineRunning = false;
+    public void StopChasing()
+    {
+        if (_chasingCoroutine == null) return;
+
+        StopCoroutine(_chasingCoroutine);
+        _chasingCoroutine = null;
     }
 
     public LinkedList<Coordinates> GetObstaclesInVision()

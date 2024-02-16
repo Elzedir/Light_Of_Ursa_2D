@@ -20,7 +20,7 @@ public enum PuzzleSet
     BulletHell,
     Telescope,
     MouseMaze,
-    IceBlock,
+    IceWall,
     UndyneSpear
 }
 

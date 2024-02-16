@@ -11,7 +11,7 @@ public class Door_Base : MonoBehaviour
     GameObject _leftCollider;
     GameObject _rightCollider;
 
-    public void InitialiseDoor(MouseMazeColour doorColour, Color color, Cell cell)
+    public void InitialiseDoor(MouseMazeColour doorColour, Color color, Cell_MouseMaze cell)
     {
         MouseMazeDoorColour = doorColour;
         DoorColor = color;

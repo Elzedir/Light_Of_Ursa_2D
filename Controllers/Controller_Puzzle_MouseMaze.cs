@@ -9,6 +9,7 @@ public class Controller_Puzzle_MouseMaze : Controller
 {
     public event Action OnBreakWall;
     public MouseMazeColour PlayerColour { get; private set; }
+    float _playerSpeed = 2;
     void Start()
     {
         KeyBindings.ContinuousPressKeyActions.Remove(ActionKey.Space);
@@ -16,22 +17,22 @@ public class Controller_Puzzle_MouseMaze : Controller
     }
     public override void HandleWPressed()
     {
-        transform.position += (Vector3.up * 0.01f);
+        transform.position += (Vector3.up * 0.01f * _playerSpeed);
     }
 
     public override void HandleSPressed()
     {
-        transform.position += (Vector3.down * 0.01f);
+        transform.position += (Vector3.down * 0.01f * _playerSpeed);
     }
 
     public override void HandleAPressed()
     {
-        transform.position += (Vector3.left * 0.01f);
+        transform.position += (Vector3.left * 0.01f * _playerSpeed);
     }
 
     public override void HandleDPressed()
     {
-        transform.position += (Vector3.right * 0.01f);
+        transform.position += (Vector3.right * 0.01f * _playerSpeed);
     }
 
     public override void HandleSpacePressed()

@@ -6,13 +6,11 @@ using UnityEngine.UI;
 
 public enum Wall { Top, Bottom, Left, Right }
 
-public class Cell : MonoBehaviour
+public class Cell_MouseMaze : Cell_Base
 {
     public Node Node { get; private set; }
-    public Coordinates Coordinates { get; private set; }
-
-    SpriteRenderer _spriteBase;
-    SpriteRenderer _spriteRenderer;
+    
+    SpriteRenderer _mazeTile;
     BoxCollider2D _colliderTop;
     BoxCollider2D _colliderBottom;
     BoxCollider2D _colliderLeft;
@@ -23,6 +21,8 @@ public class Cell : MonoBehaviour
 
     public Dictionary<Wall, bool> Sides { get; private set; }
 
+    public TextMeshPro CellText;
+
     Spawner_Maze _spawner;
     
     public void InitialiseCell(Coordinates coordinates, Spawner_Maze spawner)
@@ -30,34 +30,33 @@ public class Cell : MonoBehaviour
         Coordinates = coordinates;
         _spawner = spawner;
 
-        _spriteBase = gameObject.AddComponent<SpriteRenderer>();
-        if (_spawner.Background) _spriteBase.sprite = Resources.Load<Sprite>("Sprites/White ground");
+        _spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
+        if (_spawner.Background) _spriteRenderer.sprite = Resources.Load<Sprite>("Sprites/White ground");
 
-        _spriteRenderer = new GameObject("CellSprite").AddComponent<SpriteRenderer>();
-        _spriteRenderer.transform.parent = transform;
-        _spriteRenderer.transform.localPosition = Vector3.zero;
+        _mazeTile = new GameObject("CellSprite").AddComponent<SpriteRenderer>();
+        _mazeTile.transform.parent = transform;
+        _mazeTile.transform.localPosition = Vector3.zero;
 
         BoxCollider2D coll = gameObject.AddComponent<BoxCollider2D>();
         coll.size = new Vector2(0.9f, 0.9f);
         coll.isTrigger = true;
 
-        _colliderTop = CreateSideCollider(Wall.Top);
-        _colliderBottom = CreateSideCollider(Wall.Bottom);
-        _colliderLeft = CreateSideCollider(Wall.Left);
-        _colliderRight = CreateSideCollider(Wall.Right);
+        _colliderTop = _createSideCollider(Wall.Top);
+        _colliderBottom = _createSideCollider(Wall.Bottom);
+        _colliderLeft = _createSideCollider(Wall.Left);
+        _colliderRight = _createSideCollider(Wall.Right);
 
         GameObject textGO = new GameObject();
         textGO.transform.parent = transform;
         textGO.transform.localPosition = Vector3.zero;
-        TextMeshPro text = textGO.AddComponent<TextMeshPro>();
-        text.text = $"{Coordinates.X}_{Coordinates.Y}";
-        text.alignment = TextAlignmentOptions.Center;
-        text.sortingLayerID = -967159649;
-        text.fontSize = 3; text.color = Color.black;
-
+        CellText = textGO.AddComponent<TextMeshPro>();
+        CellText.text = $"{Coordinates.X}_{Coordinates.Y}";
+        CellText.alignment = TextAlignmentOptions.Center;
+        CellText.sortingLayerID = -967159649;
+        CellText.fontSize = 3; CellText.color = Color.black;
     }
 
-    BoxCollider2D CreateSideCollider(Wall wall)
+    BoxCollider2D _createSideCollider(Wall wall)
     {
         BoxCollider2D collider = new GameObject($"Collider{wall}").AddComponent<BoxCollider2D>();
         collider.transform.parent = transform;
@@ -104,64 +103,69 @@ public class Cell : MonoBehaviour
         if (Sides[Wall.Top] && Sides[Wall.Bottom] && Sides[Wall.Left] && Sides[Wall.Right]) sprite = Resources.Load<Sprite>("Sprites/Grid");
         
         if (!Sides[Wall.Top] && Sides[Wall.Bottom] && Sides[Wall.Left] && Sides[Wall.Right]) 
-        { sprite = Resources.Load<Sprite>("Sprites/Grid_OpenOneSide"); _spriteRenderer.transform.eulerAngles = new Vector3(0, 0, 270); }
+        { sprite = Resources.Load<Sprite>("Sprites/Grid_OpenOneSide"); _mazeTile.transform.eulerAngles = new Vector3(0, 0, 270); }
         if (Sides[Wall.Top] && !Sides[Wall.Bottom] && Sides[Wall.Left] && Sides[Wall.Right]) 
-        { sprite = Resources.Load<Sprite>("Sprites/Grid_OpenOneSide"); _spriteRenderer.transform.eulerAngles = new Vector3(0, 0, 90); }
+        { sprite = Resources.Load<Sprite>("Sprites/Grid_OpenOneSide"); _mazeTile.transform.eulerAngles = new Vector3(0, 0, 90); }
         if (Sides[Wall.Top] && Sides[Wall.Bottom] && !Sides[Wall.Left] && Sides[Wall.Right]) 
-        { sprite = Resources.Load<Sprite>("Sprites/Grid_OpenOneSide"); _spriteRenderer.transform.eulerAngles = new Vector3(0, 0, 0); }
+        { sprite = Resources.Load<Sprite>("Sprites/Grid_OpenOneSide"); _mazeTile.transform.eulerAngles = new Vector3(0, 0, 0); }
         if (Sides[Wall.Top] && Sides[Wall.Bottom] && Sides[Wall.Left] && !Sides[Wall.Right]) 
-        { sprite = Resources.Load<Sprite>("Sprites/Grid_OpenOneSide"); _spriteRenderer.transform.eulerAngles = new Vector3(0, 0, 180); }
+        { sprite = Resources.Load<Sprite>("Sprites/Grid_OpenOneSide"); _mazeTile.transform.eulerAngles = new Vector3(0, 0, 180); }
 
         if (!Sides[Wall.Top] && !Sides[Wall.Bottom] && Sides[Wall.Left] && Sides[Wall.Right]) 
-        { sprite = Resources.Load<Sprite>("Sprites/Grid_OpenTwoSides"); _spriteRenderer.transform.eulerAngles = new Vector3(0, 0, 90); }
+        { sprite = Resources.Load<Sprite>("Sprites/Grid_OpenTwoSides"); _mazeTile.transform.eulerAngles = new Vector3(0, 0, 90); }
         if (Sides[Wall.Top] && Sides[Wall.Bottom] && !Sides[Wall.Left] && !Sides[Wall.Right]) 
-        { sprite = Resources.Load<Sprite>("Sprites/Grid_OpenTwoSides"); _spriteRenderer.transform.eulerAngles = new Vector3(0, 0, 0); }
+        { sprite = Resources.Load<Sprite>("Sprites/Grid_OpenTwoSides"); _mazeTile.transform.eulerAngles = new Vector3(0, 0, 0); }
 
         if (!Sides[Wall.Top] && Sides[Wall.Bottom] && !Sides[Wall.Left] && Sides[Wall.Right]) 
-        { sprite = Resources.Load<Sprite>("Sprites/Grid_Corner"); _spriteRenderer.transform.eulerAngles = new Vector3(0, 0, 90); }
+        { sprite = Resources.Load<Sprite>("Sprites/Grid_Corner"); _mazeTile.transform.eulerAngles = new Vector3(0, 0, 90); }
         if (!Sides[Wall.Top] && Sides[Wall.Bottom] && Sides[Wall.Left] && !Sides[Wall.Right]) 
-        { sprite = Resources.Load<Sprite>("Sprites/Grid_Corner"); _spriteRenderer.transform.eulerAngles = new Vector3(0, 0, 0); }
+        { sprite = Resources.Load<Sprite>("Sprites/Grid_Corner"); _mazeTile.transform.eulerAngles = new Vector3(0, 0, 0); }
         if (Sides[Wall.Top] && !Sides[Wall.Bottom] && !Sides[Wall.Left] && Sides[Wall.Right]) 
-        { sprite = Resources.Load<Sprite>("Sprites/Grid_Corner"); _spriteRenderer.transform.eulerAngles = new Vector3(0, 0, 180); }
+        { sprite = Resources.Load<Sprite>("Sprites/Grid_Corner"); _mazeTile.transform.eulerAngles = new Vector3(0, 0, 180); }
         if (Sides[Wall.Top] && !Sides[Wall.Bottom] && Sides[Wall.Left] && !Sides[Wall.Right]) 
-        { sprite = Resources.Load<Sprite>("Sprites/Grid_Corner"); _spriteRenderer.transform.eulerAngles = new Vector3(0, 0, 270); }
+        { sprite = Resources.Load<Sprite>("Sprites/Grid_Corner"); _mazeTile.transform.eulerAngles = new Vector3(0, 0, 270); }
         
         if (!Sides[Wall.Top] && !Sides[Wall.Bottom] && !Sides[Wall.Left] && Sides[Wall.Right]) 
-        { sprite = Resources.Load<Sprite>("Sprites/Grid_OpenThreeSides"); _spriteRenderer.transform.eulerAngles = new Vector3(0, 0, 180); }
+        { sprite = Resources.Load<Sprite>("Sprites/Grid_OpenThreeSides"); _mazeTile.transform.eulerAngles = new Vector3(0, 0, 180); }
         if (!Sides[Wall.Top] && !Sides[Wall.Bottom] && Sides[Wall.Left] && !Sides[Wall.Right]) 
-        { sprite = Resources.Load<Sprite>("Sprites/Grid_OpenThreeSides"); _spriteRenderer.transform.eulerAngles = new Vector3(0, 0, 0); }
+        { sprite = Resources.Load<Sprite>("Sprites/Grid_OpenThreeSides"); _mazeTile.transform.eulerAngles = new Vector3(0, 0, 0); }
         if (!Sides[Wall.Top] && Sides[Wall.Bottom] && !Sides[Wall.Left] && !Sides[Wall.Right]) 
-        { sprite = Resources.Load<Sprite>("Sprites/Grid_OpenThreeSides"); _spriteRenderer.transform.eulerAngles = new Vector3(0, 0, 90); }
+        { sprite = Resources.Load<Sprite>("Sprites/Grid_OpenThreeSides"); _mazeTile.transform.eulerAngles = new Vector3(0, 0, 90); }
         if (Sides[Wall.Top] && !Sides[Wall.Bottom] && !Sides[Wall.Left] && !Sides[Wall.Right]) 
-        { sprite = Resources.Load<Sprite>("Sprites/Grid_OpenThreeSides"); _spriteRenderer.transform.eulerAngles = new Vector3(0, 0, 270); }
+        { sprite = Resources.Load<Sprite>("Sprites/Grid_OpenThreeSides"); _mazeTile.transform.eulerAngles = new Vector3(0, 0, 270); }
 
         if (!Sides[Wall.Top] && !Sides[Wall.Bottom] && !Sides[Wall.Left] && !Sides[Wall.Right]) 
-        { sprite = Resources.Load<Sprite>("Sprites/Grid_OpenAllSides"); _spriteRenderer.transform.eulerAngles = new Vector3(0, 0, 0); }
+        { sprite = Resources.Load<Sprite>("Sprites/Grid_OpenAllSides"); _mazeTile.transform.eulerAngles = new Vector3(0, 0, 0); }
 
-        if (sprite != null) _spriteRenderer.sprite = sprite;
+        if (sprite != null) _mazeTile.sprite = sprite;
         else Debug.Log("Sprite not found.");
     }
 
     void OnTriggerEnter2D(Collider2D collider)
     {
         if (collider.gameObject.name == "Focus") _spawner.RefreshMaze(this);
-        else if (collider.TryGetComponent<Chaser>(out Chaser chaser)) chaser.CurrentCell = this;
+        else if (collider.gameObject.name.StartsWith("Chaser_")) 
+        { 
+            collider.TryGetComponent<Chaser>(out Chaser chaser);
+            
+            chaser.CurrentCell = this;
+        } 
     }
 
     public void Show()
     {
-        if (_spawner.Background) _spriteBase.enabled = false;
-        _spriteRenderer.enabled = true;
+        if (_spawner.Background) _spriteRenderer.enabled = false;
+        _mazeTile.enabled = true;
     }
 
     public void Hide()
     {
-        if (_spawner.Background) _spriteBase.enabled = true;
-        _spriteRenderer.enabled = false;
+        if (_spawner.Background) _spriteRenderer.enabled = true;
+        _mazeTile.enabled = false;
     }
 
     public void MarkCell(Color color)
     {
-        _spriteRenderer.color = color;
+        _mazeTile.color = color;
     }
 }

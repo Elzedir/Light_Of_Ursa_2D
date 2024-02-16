@@ -48,6 +48,11 @@ public class Menu_Main : MonoBehaviour
         RunTestPuzzle(PuzzleSet.MouseMaze);
     }
 
+    public void IceWall()
+    {
+        RunTestPuzzle(PuzzleSet.IceWall);
+    }
+
     void RunTestPuzzle(PuzzleSet puzzleSet)
     {
         Transform puzzleTransform = Manager_Game.Instance.FindTransformRecursively(transform, puzzleSet.ToString());
