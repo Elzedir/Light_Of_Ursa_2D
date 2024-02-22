@@ -28,7 +28,6 @@ public class Spawner_Maze : MonoBehaviour
     Controller_Puzzle_MouseMaze _player;
 
     #region Chaser
-    Pathfinder_Base _pathfinder;
     Transform _chaserParent;
     List<Chaser> _chasers;
     int _chaserCount = 5;
@@ -72,7 +71,7 @@ public class Spawner_Maze : MonoBehaviour
         _player.OnBreakWall += BreakWall;
 
         _mousemazeTypes = new List<MazeType>(mazeTypes);
-        if (Manager_Puzzle.Instance.Puzzle.PuzzleData.PuzzleType == PuzzleType.Fixed) SpawnFixedPuzzle();
+        if (Manager_Puzzle.Instance.Puzzle.PuzzleData.PuzzleState.PuzzleType == PuzzleType.Fixed) SpawnFixedPuzzle();
         else SpawnRandomPuzzle();
     }
 
@@ -167,8 +166,8 @@ public class Spawner_Maze : MonoBehaviour
     {
         if (currentCell == null) return;
 
-        Node currentNode = Pathfinder_Base.GetNodeAtPosition(currentCell.Coordinates.X, currentCell.Coordinates.Y);
-        Node nextNode = Pathfinder_Base.GetNodeAtPosition(nextCell.Coordinates.X, nextCell.Coordinates.Y);
+        Node_Base currentNode = Pathfinder_Base.GetNodeAtPosition(currentCell.Coordinates.X, currentCell.Coordinates.Y);
+        Node_Base nextNode = Pathfinder_Base.GetNodeAtPosition(nextCell.Coordinates.X, nextCell.Coordinates.Y);
 
         if (currentCell.transform.position.x < nextCell.transform.position.x)
         {
@@ -267,7 +266,7 @@ public class Spawner_Maze : MonoBehaviour
         Chaser chaser = chaserGO.AddComponent<Chaser>();
         _chasers.Add(chaser);
         chaser.InitialiseChaser(Cells[0,0], this, Random.Range(_chaserSpeeds.Item1, _chaserSpeeds.Item2));
-        chaser.Pathfinder.RunPathfinder(_rows, _columns, chaser.CurrentCell.Coordinates, _playerLastCell.Coordinates, chaser, this);
+        chaser.Pathfinder.RunPathfinder(_rows, _columns, chaser.CurrentCell.Coordinates, _playerLastCell.Coordinates, chaser,  PuzzleSet.MouseMaze);
     }
 
     Door_Base SpawnDoor(Cell_MouseMaze cell)
@@ -346,12 +345,12 @@ public class Spawner_Maze : MonoBehaviour
 
         foreach (Chaser chaser in _chasers)
         {
-            chaser.Pathfinder.RunPathfinder(_rows, _columns, chaser.CurrentCell.Coordinates, _playerLastCell.Coordinates, chaser, this);
+            chaser.Pathfinder.RunPathfinder(_rows, _columns, chaser.CurrentCell.Coordinates, _playerLastCell.Coordinates, chaser, PuzzleSet.MouseMaze);
         }
     }
     public void GetNewRoute(Chaser chaser)
     {
-        chaser.Pathfinder.RunPathfinder(_rows, _columns, chaser.CurrentCell.Coordinates, _playerLastCell.Coordinates, chaser, this);
+        chaser.Pathfinder.RunPathfinder(_rows, _columns, chaser.CurrentCell.Coordinates, _playerLastCell.Coordinates, chaser, PuzzleSet.MouseMaze);
     }
 
     void OnDestroy()

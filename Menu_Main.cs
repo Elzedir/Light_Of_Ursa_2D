@@ -13,6 +13,11 @@ public class Menu_Main : MonoBehaviour
         Manager_Game.Instance.StartNewGame();
     }
 
+    public void LoadGame()
+    {
+        
+    }
+
     public void Settings()
     {
         Manager_Settings.Instance.OpenMenu();
@@ -65,7 +70,7 @@ public class Menu_Main : MonoBehaviour
         {
             Manager_Game.Instance.ChangeGameState(GameState.Puzzle);
             Manager_Puzzle.Instance.Puzzle = puzzle;
-            Manager_Puzzle.Instance.LoadPuzzle(puzzle.PuzzleData.PuzzleDuration, puzzle.PuzzleData.PuzzleScore);
+            Manager_Puzzle.Instance.LoadPuzzle(puzzle.PuzzleData.PuzzleObjectives.PuzzleDuration, puzzle.PuzzleData.PuzzleObjectives.PuzzleScore);
 
             SceneManager.sceneLoaded -= OnSceneLoaded;
         }

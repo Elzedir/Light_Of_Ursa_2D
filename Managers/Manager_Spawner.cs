@@ -79,11 +79,9 @@ public class Manager_Spawner : MonoBehaviour
                     (
                     data.PuzzleID,
                     data.PuzzleSet,
-                    data.PuzzleType,
-                    data.PuzzleRepeatable,
-                    data.PuzzleCompleted,
-                    data.PuzzleDuration,
-                    data.PuzzleScore
+                    data.PuzzleState,
+                    data.PuzzleObjectives,
+                    data.IceWallData
                     ));
         else _allPuzzleData[data.PuzzleID] = data;
     }
@@ -95,37 +93,5 @@ public class Manager_Spawner : MonoBehaviour
     {
         if (_allPuzzleData.ContainsKey(puzzleID)) GameObject.Find(puzzleID).GetComponent<Interactable_Puzzle>().CompletePuzzle(); 
         else Debug.Log($"_allPuzzleData does not contain {puzzleID}");
-    }
-}
-
-[System.Serializable]
-public class PuzzleData
-{
-    public string PuzzleID;
-    public PuzzleSet PuzzleSet;
-    public PuzzleType PuzzleType;
-    public bool PuzzleRepeatable = false;
-    public bool PuzzleCompleted;
-    public float PuzzleDuration;
-    public float PuzzleScore;
-
-    public PuzzleData
-        (
-        string puzzleID,
-        PuzzleSet puzzleSet,
-        PuzzleType puzzleType,
-        bool puzzleRepeatable,
-        bool puzzleCompleted,
-        float duration,
-        float score
-        )
-    {
-        PuzzleID = puzzleID;
-        PuzzleSet = puzzleSet;
-        PuzzleType = puzzleType;
-        PuzzleRepeatable = puzzleRepeatable;
-        PuzzleCompleted = puzzleCompleted;
-        PuzzleDuration = duration;
-        PuzzleScore = score;
     }
 }

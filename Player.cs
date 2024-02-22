@@ -23,10 +23,11 @@ public class Player : Controller
 
     protected override void Update()
     {
-        if (Manager_Game.Instance.CurrentState != GameState.Playing) return;
-
         _moved = false;
         base.Update();
+
+        if (Manager_Game.Instance.CurrentState != GameState.Playing) return;
+
         if (!_moved) _animator.SetFloat("Speed", 0);
         TargetCheck();
     }
@@ -51,6 +52,11 @@ public class Player : Controller
     public override void HandleDPressed()
     {
         PlayerMove(x: 1);
+    }
+
+    public override void HandleEscapePressed()
+    {
+        Menu_Escape.Instance.ToggleMenu();
     }
 
     public virtual void PlayerMove(float x = 0, float y = 0)

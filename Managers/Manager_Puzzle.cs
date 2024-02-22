@@ -35,6 +35,7 @@ public class Manager_Puzzle : MonoBehaviour
     public static Manager_Puzzle Instance;
 
     public event Action OnTakeHit;
+    public event Action<string> OnUseStamina;
 
     public Interactable_Puzzle Puzzle;
 
@@ -65,16 +66,17 @@ public class Manager_Puzzle : MonoBehaviour
 
         if (duration == 0 && score == 0) { Debug.Log("Duration and score cannot both be 0."); return; }
 
-        Manager_Game.Instance.FindTransformRecursively(transform, Puzzle.PuzzleData.PuzzleSet.ToString()).gameObject.SetActive(true);
+        Manager_Game.Instance.FindTransformRecursively(transform, Puzzle.PuzzleSet.ToString()).gameObject.SetActive(true);
 
         if (duration > 0) { _puzzleDuration = duration; _puzzleActive = true; }
 
-        switch (Puzzle.PuzzleData.PuzzleSet)
+        switch (Puzzle.PuzzleSet)
         {
             case PuzzleSet.Directional:
             case PuzzleSet.AntiDirectional:
             case PuzzleSet.FlappyInvaders:
             case PuzzleSet.MouseMaze:
+            case PuzzleSet.IceWall:
                 setActive = true;
                 break;
             case PuzzleSet.XOYXOY:
@@ -103,7 +105,7 @@ public class Manager_Puzzle : MonoBehaviour
     public void PuzzleEnd(bool completed)
     {
         _puzzleActive = false;
-        GameObject.Find(Puzzle.PuzzleData.PuzzleSet.ToString()).SetActive(false);
+        GameObject.Find(Puzzle.PuzzleSet.ToString()).SetActive(false);
 
         if (completed) { Manager_Game.Instance.LoadScene(puzzle: Puzzle); } else Manager_Game.Instance.LoadScene();
     }
@@ -115,6 +117,11 @@ public class Manager_Puzzle : MonoBehaviour
         OnTakeHit?.Invoke();
 
         StartCoroutine(InvulnerabilityPhase());
+    }
+
+    public void UseStamina(string stamina)
+    {
+        OnUseStamina?.Invoke(stamina);
     }
 
     IEnumerator InvulnerabilityPhase()

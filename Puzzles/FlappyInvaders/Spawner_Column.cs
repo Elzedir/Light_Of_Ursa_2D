@@ -47,8 +47,8 @@ public class Spawner_Column : MonoBehaviour
         _columnSprite = Resources.Load<Sprite>("Sprites/Grid");
         _mineSprite = Resources.Load<Sprite>("Sprites/Mine");
 
-        _puzzleSet = Manager_Puzzle.Instance.Puzzle.PuzzleData.PuzzleSet;
-        _puzzleType = Manager_Puzzle.Instance.Puzzle.PuzzleData.PuzzleType;
+        _puzzleSet = Manager_Puzzle.Instance.Puzzle.PuzzleSet;
+        _puzzleType = Manager_Puzzle.Instance.Puzzle.PuzzleData.PuzzleState.PuzzleType;
     }
 
     void Update()

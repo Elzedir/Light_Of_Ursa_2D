@@ -9,7 +9,7 @@ public class Cell_IceWall : Cell_Base
     Spawner_IceWall _spawner;
     public TextMeshPro CellText;
     public bool Broken { get; private set; }
-    public float CellHealth { get; private set; }
+    public int CellHealth { get; private set; }
     bool _onCooldown = false;
     Coroutine _autoBreak;
 
@@ -39,7 +39,7 @@ public class Cell_IceWall : Cell_Base
 
     void OnTriggerEnter2D(Collider2D collider)
     {
-        if (collider.gameObject.name == "Focus") _spawner.RefreshWall(this);
+        if (collider.gameObject.name == "Focus") { _spawner.RefreshWall(this); }
     }
 
     public bool DecreaseHealth(int maxHealth)
@@ -50,7 +50,7 @@ public class Cell_IceWall : Cell_Base
         _onCooldown = true;
         CellHealth --;
         CellText.text = $"{CellHealth}->{(CellHealth / maxHealth).ToString("F2")}";
-        ChangeColour(CellHealth / maxHealth);
+        ChangeColour((float)CellHealth / maxHealth);
         if (CellHealth == 1) _autoBreak = StartCoroutine(AutoBreak());
         
         StartCoroutine(_healthCooldown());

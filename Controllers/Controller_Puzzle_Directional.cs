@@ -16,8 +16,8 @@ public class Controller_Puzzle_Directional : Controller
     void Start()
     {
         _collider = GetComponent<BoxCollider2D>();
-        _puzzleSet = Manager_Puzzle.Instance.Puzzle.PuzzleData.PuzzleSet;
-        _puzzleType = Manager_Puzzle.Instance.Puzzle.PuzzleData.PuzzleType;
+        _puzzleSet = Manager_Puzzle.Instance.Puzzle.PuzzleSet;
+        _puzzleType = Manager_Puzzle.Instance.Puzzle.PuzzleData.PuzzleState.PuzzleType;
         Target = GameObject.Find("Focus").transform;
     }
 
@@ -31,7 +31,7 @@ public class Controller_Puzzle_Directional : Controller
 
     void OnCollisionStay2D(Collision2D collision)
     {
-        if (Manager_Puzzle.Instance.Puzzle.PuzzleData.PuzzleSet == PuzzleSet.Directional)
+        if (Manager_Puzzle.Instance.Puzzle.PuzzleSet == PuzzleSet.Directional)
         {
             int zAngle = Mathf.RoundToInt(collision.transform.localRotation.eulerAngles.z) % 360;
             if (zAngle < 0) zAngle += 360;
@@ -50,7 +50,7 @@ public class Controller_Puzzle_Directional : Controller
                 collision.gameObject.GetComponent<Arrow>().DestroyArrow();
         }
 
-        else if (Manager_Puzzle.Instance.Puzzle.PuzzleData.PuzzleSet == PuzzleSet.AntiDirectional && collision.gameObject.name != "Focus") collision.gameObject.GetComponent<Arrow>().DestroyArrow();
+        else if (Manager_Puzzle.Instance.Puzzle.PuzzleSet == PuzzleSet.AntiDirectional && collision.gameObject.name != "Focus") collision.gameObject.GetComponent<Arrow>().DestroyArrow();
     }
 
     void MoveShield()

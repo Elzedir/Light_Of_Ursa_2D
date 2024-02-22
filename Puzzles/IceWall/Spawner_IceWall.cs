@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
 
-public enum IceWallType { Mirror, Stamina, Shatter }
+public enum IceWallType { None, Mirror, Stamina, Shatter }
 public class Spawner_IceWall : MonoBehaviour
 {
     List<IceWallType> _icewallTypes;
@@ -18,6 +18,8 @@ public class Spawner_IceWall : MonoBehaviour
 
     int _rows = 10;
     int _columns = 10;
+    int _maxDistance = 0;
+    Cell_IceWall _furthestCell;
 
     Coordinates _startPosition;
 
@@ -26,12 +28,14 @@ public class Spawner_IceWall : MonoBehaviour
     (int, int) _cellHealthRange = (5, 20);
     int _maxCellHealth;
 
+    int _playerExtraStamina = 10;
+
     void Start()
     {
         List<IceWallType> gameModes = new List<IceWallType>();
 
-        //gameModes.Add(IceWallType.Stamina);
-        gameModes.Add(IceWallType.Shatter);
+        gameModes.Add(IceWallType.Stamina);
+        //gameModes.Add(IceWallType.Shatter);
         //gameModes.Add(IceWallType.Mirror);
 
         InitialisePuzzle(gameModes);
@@ -39,12 +43,13 @@ public class Spawner_IceWall : MonoBehaviour
 
     void InitialisePuzzle(List<IceWallType> gameModes)
     {
+        NodeArray.Nodes = NodeArray.InitializeArray(_rows, _columns);
         _cellParent = GameObject.Find("CellParent").transform;
         _player = GameObject.Find("Focus").GetComponent<Controller_Puzzle_IceWall>();
-        _player.Initialise(this);
+        _player.Initialise(this, _playerExtraStamina);
 
         _icewallTypes = new List<IceWallType>(gameModes);
-        if (Manager_Puzzle.Instance.Puzzle.PuzzleData.PuzzleType == PuzzleType.Fixed) SpawnFixedPuzzle();
+        if (Manager_Puzzle.Instance.Puzzle.PuzzleData.PuzzleState.PuzzleType == PuzzleType.Fixed) SpawnFixedPuzzle();
         else SpawnRandomPuzzle();
     }
 
@@ -62,15 +67,32 @@ public class Spawner_IceWall : MonoBehaviour
             for (int col = 0; col < _columns; col++)
             {
                 Cells[row, col] = CreateCell(row, col);
+
+                if ((row + col) > _maxDistance)
+                {
+                    _maxDistance = row + col;
+                    _furthestCell = Cells[row, col];
+                }
             }
         }
 
-        _player.transform.position = Cells[0, 0].transform.position;
         _playerLastCell = Cells[0, 0];
-
-        foreach(Cell_IceWall cell in Cells)
+        _player.transform.position = _playerLastCell.transform.position;
+        _player.SetCurrentCell(_playerLastCell);
+        _startPosition = _playerLastCell.Coordinates;
+        
+        //if (_icewallTypes.Contains(IceWallType.Shatter))
+        //{
+            foreach (Cell_IceWall cell in Cells)
+            {
+                cell.ChangeColour((float)cell.CellHealth / _maxCellHealth);
+            }
+        //}
+        
+        if (_icewallTypes.Contains(IceWallType.Stamina))
         {
-            cell.ChangeColour(cell.CellHealth / _maxCellHealth);
+            _furthestCell.MarkCell(Color.red);
+            _calculatePlayerMaxStamina();
         }
     }
 
@@ -83,14 +105,20 @@ public class Spawner_IceWall : MonoBehaviour
         Cell_IceWall cell = cellGO.AddComponent<Cell_IceWall>();
         int cellHealth = Random.Range(_cellHealthRange.Item1, _cellHealthRange.Item2);
         if (cellHealth > _maxCellHealth) _maxCellHealth = cellHealth;
+        Pathfinder_Base.GetNodeAtPosition(row, col).UpdateMovementCost(Direction.None, cellHealth);
         cell.InitialiseCell(new Coordinates(row, col), this, cellHealth);
 
         return cell;
     }
 
+    void _calculatePlayerMaxStamina()
+    {
+        _player.Pathfinder.RunPathfinder(_rows, _columns, _playerLastCell.Coordinates, _furthestCell.Coordinates, _player, PuzzleSet.IceWall);
+    }
+
     void Update()
     {
-        if (_icewallTypes.Contains(IceWallType.Shatter)) OnStayInCell(_playerLastCell);
+        OnStayInCell(_playerLastCell);
     }
 
     public void OnStayInCell(Cell_IceWall cell)
@@ -101,7 +129,14 @@ public class Spawner_IceWall : MonoBehaviour
         }
         if (_icewallTypes.Contains(IceWallType.Stamina))
         {
-            // decrease player stamina
+            if (!_player.DecreaseStamina(cell))
+            {
+                _player.Fall();
+
+                // Show an animation first.
+
+                _player.transform.position = Cells[_startPosition.X, _startPosition.Y].transform.position;
+            }
         }
         if (_icewallTypes.Contains(IceWallType.Shatter))
         {
@@ -127,6 +162,7 @@ public class Spawner_IceWall : MonoBehaviour
 
     public void RefreshWall(Cell_IceWall cell)
     {
+        _player.SetCurrentCell(cell);
         _playerLastCell = cell;
     }
 }

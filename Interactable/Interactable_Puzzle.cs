@@ -1,17 +1,24 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
+using System.Collections.Generic;
+using Unity.VisualScripting;
+
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public class Interactable_Puzzle : Interactable
 {
-    [SerializeField] public PuzzleData PuzzleData;
+    public PuzzleSet PuzzleSet;
+    public List<IceWallType> IceWallTypes;
+    public MazeType MazeType;
+    public PuzzleData PuzzleData;
 
     BoxCollider2D _collider;
 
     protected virtual void Awake()
     {
-        PuzzleData.PuzzleID = gameObject.name;
+        if (PuzzleData.PuzzleID == "") PuzzleData.PuzzleID = gameObject.name;
         _collider = GetComponent<BoxCollider2D>();
     }
 
@@ -19,7 +26,7 @@ public class Interactable_Puzzle : Interactable
     {
         base.Interact(interactor);
 
-        if (interactor.gameObject.TryGetComponent<Player>(out Player player) && !PuzzleData.PuzzleCompleted)
+        if (interactor.gameObject.TryGetComponent<Player>(out Player player) && !PuzzleData.PuzzleState.PuzzleCompleted)
         { 
             Manager_Game.Instance.LoadScene("Puzzle", this); 
         }
@@ -27,11 +34,11 @@ public class Interactable_Puzzle : Interactable
 
     public void CompletePuzzle()
     {
-        if (PuzzleData.PuzzleRepeatable) return;
+        if (PuzzleData.PuzzleState.PuzzleRepeatable) return;
 
-        PuzzleData.PuzzleCompleted = true;
+        PuzzleData.PuzzleState.PuzzleCompleted = true;
 
-        switch (PuzzleData.PuzzleSet)
+        switch (PuzzleSet)
         {
             case PuzzleSet.Directional:
                 GetComponent<BoxCollider2D>().isTrigger = true;
@@ -41,3 +48,40 @@ public class Interactable_Puzzle : Interactable
         }
     }
 }
+
+#if UNITY_EDITOR
+[CustomEditor(typeof(Interactable_Puzzle))]
+[CanEditMultipleObjects]
+public class PuzzleDataEditor : Editor
+{
+    SerializedProperty _puzzleData;
+    SerializedProperty _puzzleSet;
+
+    void OnEnable()
+    {
+        _puzzleData = serializedObject.FindProperty("PuzzleData");
+        _puzzleSet = serializedObject.FindProperty("PuzzleSet");
+    }
+
+    public override void OnInspectorGUI()
+    {
+        serializedObject.Update();
+
+        EditorGUILayout.PropertyField(_puzzleSet, false);
+
+        if (_puzzleSet.enumValueIndex != (int)PuzzleSet.None)
+        {
+            SerializedProperty iceWallTypes = serializedObject.FindProperty("IceWallTypes");
+            EditorGUILayout.PropertyField(iceWallTypes, true);
+
+            if (iceWallTypes.isArray && iceWallTypes.arraySize > 0)
+            {
+                EditorGUILayout.PropertyField(_puzzleData.FindPropertyRelative("PuzzleObjectives"), true);
+                EditorGUILayout.PropertyField(_puzzleData.FindPropertyRelative("IceWallData"), true);
+            }
+        }
+
+        serializedObject.ApplyModifiedProperties();
+    }
+}
+#endif

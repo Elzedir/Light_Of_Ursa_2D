@@ -1,7 +1,7 @@
 using UnityEngine;
 using static UnityEditor.Experimental.GraphView.GraphView;
 
-public class Controller : MonoBehaviour
+public abstract class Controller : MonoBehaviour
 {
     public KeyBindings KeyBindings;
     protected SpriteRenderer _spriteRenderer;
@@ -81,6 +81,6 @@ public class Controller : MonoBehaviour
 
     public virtual void HandleEscapePressed()
     {
-
+        
     }
 }

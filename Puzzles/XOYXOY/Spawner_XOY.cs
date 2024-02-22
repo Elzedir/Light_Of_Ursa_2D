@@ -33,7 +33,7 @@ public class Spawner_XOY : MonoBehaviour
 
     void InitialisePuzzle()
     {
-        if (Manager_Puzzle.Instance.Puzzle.PuzzleData.PuzzleType == PuzzleType.Fixed) SpawnFixedPuzzle();
+        if (Manager_Puzzle.Instance.Puzzle.PuzzleData.PuzzleState.PuzzleType == PuzzleType.Fixed) SpawnFixedPuzzle();
         else SpawnRandomPuzzle();
     }
     

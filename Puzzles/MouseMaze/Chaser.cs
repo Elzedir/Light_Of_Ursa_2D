@@ -29,7 +29,7 @@ public class Chaser : MonoBehaviour, PathfinderMover
         _chaserSpeed = chaserSpeed;
     }
 
-    public Node GetStartNode()
+    public Node_Base GetStartNode()
     {
         return Pathfinder_Base.GetNodeAtPosition(CurrentCell.Coordinates.X, CurrentCell.Coordinates.Y);
     }
@@ -38,7 +38,7 @@ public class Chaser : MonoBehaviour, PathfinderMover
         Destroy(gameObject);
     }
 
-    public void MoveTo(Node target)
+    public void MoveTo(Node_Base target)
     {
         if (_chasingCoroutine != null) StopChasing();
 

@@ -10,25 +10,24 @@ public class Pathfinder_Base
 {
     PriorityQueue _mainPriorityQueue;
     double _priorityModifier;
-    Node _targetNode;
-    Node _startNode;
-    Spawner_Maze _spawner;
+    Node_Base _targetNode;
+    Node_Base _startNode;
+    PuzzleSet _puzzleSet;
 
     #region Initialisation
-    public void RunPathfinder(int rows, int columns, Coordinates start, Coordinates target, PathfinderMover mover, Spawner_Maze spawner)
+    public void RunPathfinder(int rows, int columns, Coordinates start, Coordinates target, PathfinderMover mover, PuzzleSet puzzleSet)
     {
         if (start.Equals(target)) return;
 
-        _spawner = spawner;
-
-        _startNode = new Node();
+        _puzzleSet = puzzleSet;
+        _startNode = new Node_Base();
         _startNode.X = start.X;
         _startNode.Y = start.Y;
-        _targetNode = new Node();
+        _targetNode = new Node_Base();
         _targetNode.X = target.X;
         _targetNode.Y = target.Y;
 
-        Node lastNode = _startNode;
+        Node_Base lastNode = _startNode;
 
         _initialise(rows, columns);
 
@@ -41,18 +40,18 @@ public class Pathfinder_Base
             _startNode = _minimumSuccessorNode(_startNode);
             LinkedList<Coordinates> obstacleCoordinates = mover.GetObstaclesInVision();
             double oldPriorityModifier = _priorityModifier;
-            Node oldLastNode = lastNode;
+            Node_Base oldLastNode = lastNode;
             _priorityModifier += _manhattanDistance(_startNode, lastNode);
             lastNode = _startNode;
             bool change = false;
 
             foreach (Coordinates coordinate in obstacleCoordinates)
             {
-                Node node = NodeArray.Nodes[coordinate.X, coordinate.Y];
+                Node_Base node = NodeArray.Nodes[coordinate.X, coordinate.Y];
                 if (node.IsObstacle) continue;
                 change = true;
                 node.IsObstacle = true;
-                foreach (Node p in node.GetPredecessors(NodeArray.Nodes))
+                foreach (Node_Base p in node.GetPredecessors(NodeArray.Nodes))
                 {
                     _updateVertex(p);
                 }
@@ -72,7 +71,7 @@ public class Pathfinder_Base
 
     void _initialise(int rows, int columns)
     {
-        foreach (Node node in NodeArray.Nodes){ node.RHS = double.PositiveInfinity; node.G = double.PositiveInfinity; }
+        foreach (Node_Base node in NodeArray.Nodes){ node.RHS = double.PositiveInfinity; node.G = double.PositiveInfinity; }
         _mainPriorityQueue = new PriorityQueue(rows * columns);
         _priorityModifier = 0;
         _targetNode = NodeArray.Nodes[_targetNode.X, _targetNode.Y];
@@ -81,16 +80,16 @@ public class Pathfinder_Base
         _mainPriorityQueue.Enqueue(_targetNode, _calculatePriority(_targetNode));
     }
 
-    Priority _calculatePriority(Node node)
+    Priority _calculatePriority(Node_Base node)
     {
         return new Priority(Math.Min(node.G, node.RHS) + _manhattanDistance(node, _startNode) + _priorityModifier, Math.Min(node.G, node.RHS));
     }
-    double _manhattanDistance(Node a, Node b)
+    double _manhattanDistance(Node_Base a, Node_Base b)
     {
         return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
     }
     
-    void _updateVertex(Node node)
+    void _updateVertex(Node_Base node)
     {
         if (!node.Equals(_targetNode))
         {
@@ -105,13 +104,13 @@ public class Pathfinder_Base
             _mainPriorityQueue.Enqueue(node, _calculatePriority(node));
         }
     }
-    Node _minimumSuccessorNode(Node node)
+    Node_Base _minimumSuccessorNode(Node_Base node)
     {
         double minimumCostToMove = Double.PositiveInfinity;
-        Node newNode = null;
-        foreach (Node successor in node.GetSuccessors(NodeArray.Nodes))
+        Node_Base newNode = null;
+        foreach (Node_Base successor in node.GetSuccessors(NodeArray.Nodes))
         {
-            double costToMove = node.GetMovementCostTo(successor) + successor.G;
+            double costToMove = node.GetMovementCostTo(successor, _puzzleSet) + successor.G;
 
             if (costToMove <= minimumCostToMove && !successor.IsObstacle)
             {
@@ -124,12 +123,12 @@ public class Pathfinder_Base
 
         return newNode;
     }
-    double _minimumSuccessorCost(Node node)
+    double _minimumSuccessorCost(Node_Base node)
     {
         double minimumCost = Double.PositiveInfinity;
-        foreach (Node successor in node.GetSuccessors(NodeArray.Nodes))
+        foreach (Node_Base successor in node.GetSuccessors(NodeArray.Nodes))
         {
-            double costToMove = node.GetMovementCostTo(successor) + successor.G;
+            double costToMove = node.GetMovementCostTo(successor, _puzzleSet) + successor.G;
             if (costToMove < minimumCost && !successor.IsObstacle) minimumCost = costToMove;
         }
         return minimumCost;
@@ -139,7 +138,7 @@ public class Pathfinder_Base
         while (_mainPriorityQueue.Peek().CompareTo(_calculatePriority(_startNode)) < 0 || _startNode.RHS != _startNode.G)
         {
             Priority highestPriority = _mainPriorityQueue.Peek();
-            Node node = _mainPriorityQueue.Dequeue();
+            Node_Base node = _mainPriorityQueue.Dequeue();
             if (node == null) break;
 
             if (highestPriority.CompareTo(_calculatePriority(node)) < 0)
@@ -149,7 +148,7 @@ public class Pathfinder_Base
             else if (node.G > node.RHS)
             {
                 node.G = node.RHS;
-                foreach (Node neighbour in node.GetPredecessors(NodeArray.Nodes))
+                foreach (Node_Base neighbour in node.GetPredecessors(NodeArray.Nodes))
                 {
                     _updateVertex(neighbour);
                 }
@@ -158,7 +157,7 @@ public class Pathfinder_Base
             {
                 node.G = Double.PositiveInfinity;
                 _updateVertex(node);
-                foreach (Node neighbour in node.GetPredecessors(NodeArray.Nodes))
+                foreach (Node_Base neighbour in node.GetPredecessors(NodeArray.Nodes))
                 {
                     _updateVertex(neighbour);
                 }
@@ -167,19 +166,19 @@ public class Pathfinder_Base
     }
     #endregion
 
-    public void UpdateWallState(Node node, Direction direction, bool wallExists)
+    public void UpdateWallState(Node_Base node, Direction direction, bool wallExists)
     {
         double newCost = wallExists ? Double.PositiveInfinity : 1;
 
         node.UpdateMovementCost(direction, newCost);
 
-        Node neighborNode = GetNeighbor(node, direction);
+        Node_Base neighborNode = GetNeighbor(node, direction);
 
         Direction oppositeDirection = GetOppositeDirection(direction);
         neighborNode.UpdateMovementCost(oppositeDirection, newCost);
     }
 
-    Node GetNeighbor(Node node, Direction direction)
+    Node_Base GetNeighbor(Node_Base node, Direction direction)
     {
         switch (direction)
         {
@@ -203,16 +202,16 @@ public class Pathfinder_Base
         }
     }
 
-    public static Node GetNodeAtPosition(int x, int y)
+    public static Node_Base GetNodeAtPosition(int x, int y)
     {
         if (NodeArray.Nodes[x, y] != null) return NodeArray.Nodes[x, y];
         return null;
     }
 
-    public List<Coordinates> RetrievePath(Node startNode, Node targetNode)
+    public List<Coordinates> RetrievePath(Node_Base startNode, Node_Base targetNode)
     {
         List<Coordinates> path = new List<Coordinates>();
-        Node currentNode = targetNode;
+        Node_Base currentNode = targetNode;
 
         while (currentNode != null && !currentNode.Equals(startNode))
         {
@@ -232,7 +231,7 @@ public class Pathfinder_Base
         return path;
     }
 
-    public static void FindAllPredecessors(Node node, int infiniteEnd, int infinityStart = 0)
+    public static void FindAllPredecessors(Node_Base node, int infiniteEnd, int infinityStart = 0)
     {
         infinityStart++;
         if (infinityStart > infiniteEnd) return;
@@ -245,16 +244,16 @@ public class Pathfinder_Base
 
 public class NodeArray
 {
-    public static Node[,] Nodes;
+    public static Node_Base[,] Nodes;
 
-    public static Node[,] InitializeArray(int rows, int columns)
+    public static Node_Base[,] InitializeArray(int rows, int columns)
     {
-        Nodes = new Node[rows, columns];
+        Nodes = new Node_Base[rows, columns];
         for (int row = 0; row < Nodes.GetLength(0); row++)
         {
             for (int column = 0; column < Nodes.GetLength(1); column++)
             {
-                Nodes[row, column] = new Node();
+                Nodes[row, column] = new Node_Base();
                 Nodes[row, column].X = row;
                 Nodes[row, column].Y = column;
                 Nodes[row, column].G = Double.PositiveInfinity;
@@ -267,20 +266,21 @@ public class NodeArray
 
 public enum Direction { None, Top, Bottom, Left, Right }
 
-public class Node
+public class Node_Base
 {
     public int X;
     public int Y;
     public double G;
     public double RHS;
-    private Node _predecessor;
-    public Node Predecessor { get; set; }
+    private Node_Base _predecessor;
+    public Node_Base Predecessor { get; set; }
 
+    public double MovementCost;
     public Dictionary<Direction, double> MovementCosts { get; private set; }
 
     public bool IsObstacle;
 
-    public Node()
+    public Node_Base()
     {
         MovementCosts = new Dictionary<Direction, double>
         {
@@ -293,41 +293,51 @@ public class Node
 
     public void UpdateMovementCost(Direction direction, double cost)
     {
-        MovementCosts[direction] = cost;
+        if (direction == Direction.None) MovementCost = cost;
+        else MovementCosts[direction] = cost;
     }
 
-    public double GetMovementCostTo(Node successor)
+    public double GetMovementCostTo(Node_Base successor, PuzzleSet puzzleSet)
     {
-        Direction directionToSuccessor = Direction.None;
-
-        if (X == successor.X)
+        if (puzzleSet == PuzzleSet.MouseMaze)
         {
-            if (Y == successor.Y - 1) directionToSuccessor = Direction.Top;
-            else if (Y == successor.Y + 1) directionToSuccessor = Direction.Bottom;
-            else throw new InvalidOperationException("Nodes are not X adjacent.");
-        }
-        else if (Y == successor.Y)
-        {
-            if (X == successor.X - 1) directionToSuccessor = Direction.Right;
-            else if (X == successor.X + 1) directionToSuccessor = Direction.Left;
-            else throw new InvalidOperationException("Nodes are not Y adjacent.");
-        }
-        else throw new InvalidOperationException("Nodes are not adjacent.");
+            Direction directionToSuccessor = Direction.None;
 
-        if (!MovementCosts.TryGetValue(directionToSuccessor, out double cost) || directionToSuccessor == Direction.None) throw new InvalidOperationException("Invalid direction.");
-        
-        return cost;
+            if (X == successor.X)
+            {
+                if (Y == successor.Y - 1) directionToSuccessor = Direction.Top;
+                else if (Y == successor.Y + 1) directionToSuccessor = Direction.Bottom;
+                else throw new InvalidOperationException("Nodes are not X adjacent.");
+            }
+            else if (Y == successor.Y)
+            {
+                if (X == successor.X - 1) directionToSuccessor = Direction.Right;
+                else if (X == successor.X + 1) directionToSuccessor = Direction.Left;
+                else throw new InvalidOperationException("Nodes are not Y adjacent.");
+            }
+            else throw new InvalidOperationException("Nodes are not adjacent.");
+
+            if (!MovementCosts.TryGetValue(directionToSuccessor, out double cost) || directionToSuccessor == Direction.None) throw new InvalidOperationException("Invalid direction.");
+
+            return cost;
+        }
+        else if (puzzleSet == PuzzleSet.IceWall)
+        {
+            return successor.MovementCost;
+        }
+
+        throw new InvalidOperationException($"{puzzleSet} not valid.");
     }
 
-    public bool Equals(Node that)
+    public bool Equals(Node_Base that)
     {
         if (X == that.X && Y == that.Y) return true;
         return false;
     }
 
-    public LinkedList<Node> GetSuccessors(Node[,] nodes)
+    public LinkedList<Node_Base> GetSuccessors(Node_Base[,] nodes)
     {
-        LinkedList<Node> successors = new LinkedList<Node>();
+        LinkedList<Node_Base> successors = new LinkedList<Node_Base>();
         if (X + 1 < nodes.GetLength(0)) successors.AddFirst(nodes[X + 1, Y]);
         if (Y + 1 < nodes.GetLength(1)) successors.AddFirst(nodes[X, Y + 1]);
         if (X - 1 >= 0) successors.AddFirst(nodes[X - 1, Y]);
@@ -335,10 +345,10 @@ public class Node
         return successors;
     }
 
-    public LinkedList<Node> GetPredecessors(Node[,] nodes)
+    public LinkedList<Node_Base> GetPredecessors(Node_Base[,] nodes)
     {
-        LinkedList<Node> neighbours = new LinkedList<Node>();
-        Node tempNode;
+        LinkedList<Node_Base> neighbours = new LinkedList<Node_Base>();
+        Node_Base tempNode;
         if (X + 1 < nodes.GetLength(0))
         {
             tempNode = nodes[X + 1, Y];
@@ -385,10 +395,10 @@ public class Priority
 
 public class NodeQueue
 {
-    public Node Node;
+    public Node_Base Node;
     public Priority Priority;
 
-    public NodeQueue(Node node, Priority priority)
+    public NodeQueue(Node_Base node, Priority priority)
     {
         Node = node;
         Priority = priority;
@@ -399,13 +409,13 @@ public class PriorityQueue
 {
     int _currentPosition;
     NodeQueue[] _nodeQueue;
-    Dictionary<Node, int> _priorityQueue;
+    Dictionary<Node_Base, int> _priorityQueue;
 
     public PriorityQueue(int maxNodes)
     {
         _currentPosition = 0;
         _nodeQueue = new NodeQueue[maxNodes];
-        _priorityQueue = new Dictionary<Node, int>();
+        _priorityQueue = new Dictionary<Node_Base, int>();
     }
 
     public Priority Peek()
@@ -415,11 +425,11 @@ public class PriorityQueue
         return _nodeQueue[1].Priority;
     }
 
-    public Node Dequeue()
+    public Node_Base Dequeue()
     {
         if (_currentPosition == 0) return null;
 
-        Node node = _nodeQueue[1].Node;
+        Node_Base node = _nodeQueue[1].Node;
         _nodeQueue[1] = _nodeQueue[_currentPosition];
         _priorityQueue[_nodeQueue[1].Node] = 1;
         _priorityQueue[node] = 0;
@@ -428,7 +438,7 @@ public class PriorityQueue
         return node;
     }
 
-    public void Enqueue(Node node, Priority priority)
+    public void Enqueue(Node_Base node, Priority priority)
     {
         NodeQueue nodeQueue = new NodeQueue(node, priority);
         _currentPosition++;
@@ -438,7 +448,7 @@ public class PriorityQueue
         _moveUp(_currentPosition);
     }
 
-    public void Update(Node node, Priority priority)
+    public void Update(Node_Base node, Priority priority)
     {
         int index = _priorityQueue[node];
         if (index == 0) return;
@@ -454,7 +464,7 @@ public class PriorityQueue
         }
     }
 
-    public void Remove(Node node)
+    public void Remove(Node_Base node)
     {
         int index = _priorityQueue[node];
 
@@ -467,7 +477,7 @@ public class PriorityQueue
         _moveDown(index);
     }
 
-    public bool Contains(Node node)
+    public bool Contains(Node_Base node)
     {
         int index;
         if (!_priorityQueue.TryGetValue(node, out index))
@@ -537,7 +547,7 @@ public class Coordinates
 
 public interface PathfinderMover
 {
-    void MoveTo(Node target);
+    void MoveTo(Node_Base target);
     LinkedList<Coordinates> GetObstaclesInVision();
 }
 

@@ -25,8 +25,8 @@ public class Spawner_Arrow : MonoBehaviour
     {
         _arrowSprite = Resources.Load<Sprite>("Sprites/Arrow_01");
 
-        _puzzleSet = Manager_Puzzle.Instance.Puzzle.PuzzleData.PuzzleSet;
-        _puzzleType = Manager_Puzzle.Instance.Puzzle.PuzzleData.PuzzleType;
+        _puzzleSet = Manager_Puzzle.Instance.Puzzle.PuzzleSet;
+        _puzzleType = Manager_Puzzle.Instance.Puzzle.PuzzleData.PuzzleState.PuzzleType;
 
         foreach (Transform child in transform)
         {

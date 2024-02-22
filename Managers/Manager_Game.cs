@@ -80,7 +80,7 @@ public class Manager_Game : MonoBehaviour
             {
                 ChangeGameState(GameState.Puzzle);
                 Manager_Puzzle.Instance.Puzzle = _currentPuzzle;
-                Manager_Puzzle.Instance.LoadPuzzle(_currentPuzzle.PuzzleData.PuzzleDuration, _currentPuzzle.PuzzleData.PuzzleScore);
+                Manager_Puzzle.Instance.LoadPuzzle(_currentPuzzle.PuzzleData.PuzzleObjectives.PuzzleDuration, _currentPuzzle.PuzzleData.PuzzleObjectives.PuzzleScore);
             }
             else 
             {

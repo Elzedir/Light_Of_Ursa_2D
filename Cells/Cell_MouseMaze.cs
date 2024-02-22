@@ -8,7 +8,7 @@ public enum Wall { Top, Bottom, Left, Right }
 
 public class Cell_MouseMaze : Cell_Base
 {
-    public Node Node { get; private set; }
+    public Node_Base Node { get; private set; }
     
     SpriteRenderer _mazeTile;
     BoxCollider2D _colliderTop;
@@ -152,19 +152,19 @@ public class Cell_MouseMaze : Cell_Base
         } 
     }
 
-    public void Show()
+    public override void Show()
     {
         if (_spawner.Background) _spriteRenderer.enabled = false;
         _mazeTile.enabled = true;
     }
 
-    public void Hide()
+    public override void Hide()
     {
         if (_spawner.Background) _spriteRenderer.enabled = true;
         _mazeTile.enabled = false;
     }
 
-    public void MarkCell(Color color)
+    public override void MarkCell(Color color)
     {
         _mazeTile.color = color;
     }
