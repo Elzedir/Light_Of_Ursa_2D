@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Interactable_Staff : Interactable
 {
-    bool _pickedUp = false;
+    //bool _pickedUp = false;
 
     public override void Interact(GameObject interactor = null)
     {

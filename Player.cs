@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Player : Controller
+public class Player : Controller, IDataPersistence
 {
     public float SpeedIncrease;
     BoxCollider2D _coll;
@@ -19,6 +19,16 @@ public class Player : Controller
     {
         _coll = GetComponent<BoxCollider2D>();
         _animator = GetComponent<Animator>();
+    }
+
+    public void SaveData(GameData data)
+    {
+        data.PlayerPosition = transform.position;
+    }
+
+    public void LoadData(GameData data)
+    {
+        transform.position = data.PlayerPosition;
     }
 
     protected override void Update()

@@ -30,13 +30,13 @@ public class Menu_Escape : Menu_Base
         else CloseMenu();
     }
 
-    public override void OpenMenu(GameObject interactedObject = null)
+    public override void OpenMenu()
     {
         gameObject.SetActive(true);
         _isOpen = true;
         Manager_Game.Instance.ChangeGameState(GameState.Paused);
     }
-    public override void CloseMenu(GameObject interactedObject = null)
+    public override void CloseMenu()
     {
         gameObject.SetActive(false);
         _isOpen = false;
@@ -51,7 +51,7 @@ public class Menu_Escape : Menu_Base
 
     public void QuitToMainMenu()
     {
-        SceneManager.LoadScene("Main Menu");
+        SceneManager.LoadSceneAsync("Main Menu");
     }
 
     public void QuitToDesktop()

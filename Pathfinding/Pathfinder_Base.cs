@@ -385,10 +385,10 @@ public class Priority
     }
     public int CompareTo(Priority that)
     {
-        if (this.PrimaryPriority < that.PrimaryPriority) return -1;
-        else if (this.PrimaryPriority > that.PrimaryPriority) return 1;
-        if (this.SecondaryPriority > that.SecondaryPriority) return 1;
-        else if (this.SecondaryPriority < that.SecondaryPriority) return -1;
+        if (PrimaryPriority < that.PrimaryPriority) return -1;
+        else if (PrimaryPriority > that.PrimaryPriority) return 1;
+        if (SecondaryPriority > that.SecondaryPriority) return 1;
+        else if (SecondaryPriority < that.SecondaryPriority) return -1;
         return 0;
     }
 }
@@ -540,8 +540,8 @@ public class Coordinates
 
     public Coordinates(int x, int y)
     {
-        this.X = x;
-        this.Y = y;
+        X = x;
+        Y = y;
     }
 }
 

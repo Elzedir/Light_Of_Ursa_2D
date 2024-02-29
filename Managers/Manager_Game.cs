@@ -14,7 +14,7 @@ public enum GameState
     Puzzle
 }
 
-public class Manager_Game : MonoBehaviour
+public class Manager_Game : MonoBehaviour, SaveableData
 {
     public static Manager_Game Instance;
 
@@ -37,14 +37,19 @@ public class Manager_Game : MonoBehaviour
         if(SceneManager.GetActiveScene().name == "Main_Menu") CurrentState = GameState.MainMenu;
 
         Manager_Spawner.OnPuzzleStatesRestored += OnPuzzleStatesRestored;
+
+        Manager_Save.OnSave += Save;
+        Manager_Save.OnLoad += Load;
     }
 
     void OnDestroy()
     {
         Manager_Spawner.OnPuzzleStatesRestored -= OnPuzzleStatesRestored;
+        Manager_Save.OnSave -= Save;
+        Manager_Save.OnLoad -= Load;
     }
 
-    public Transform FindTransformRecursively(Transform parent, string name)
+    public static Transform FindTransformRecursively(Transform parent, string name)
     {
         foreach (Transform child in parent)
         {
@@ -69,9 +74,9 @@ public class Manager_Game : MonoBehaviour
         else if (nextScene == null && currentScene != "Puzzle") { Debug.Log("Cannot load null scene."); return; }
         else if (nextScene == null) nextScene = LastScene;
 
-        SceneManager.LoadScene(nextScene);
+        SceneManager.LoadSceneAsync(nextScene);
         SceneManager.sceneLoaded += OnSceneLoaded;
-        
+
         void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             if (scene.name != nextScene) { Debug.Log("Did not load the correct scene."); return; }
@@ -82,7 +87,7 @@ public class Manager_Game : MonoBehaviour
                 Manager_Puzzle.Instance.Puzzle = _currentPuzzle;
                 Manager_Puzzle.Instance.LoadPuzzle(_currentPuzzle.PuzzleData.PuzzleObjectives.PuzzleDuration, _currentPuzzle.PuzzleData.PuzzleObjectives.PuzzleScore);
             }
-            else 
+            else
             {
                 ChangeGameState(GameState.Playing);
                 Player = FindFirstObjectByType<Player>();
@@ -103,7 +108,7 @@ public class Manager_Game : MonoBehaviour
     public void StartNewGame()
     {
         LastScene = SceneManager.GetActiveScene().name;
-        SceneManager.LoadScene("Ursus_Cave");
+        SceneManager.LoadSceneAsync("Ursus_Cave");
         SceneManager.sceneLoaded += OnSceneLoaded;
 
         void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -180,5 +185,15 @@ public class Manager_Game : MonoBehaviour
 
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(Player.transform.position, InteractRange);
+    }
+
+    public void Save()
+    {
+        //Manager_Save.SaveData.SaveManagerGame(this);
+    }
+
+    public void Load()
+    {
+        //Manager_Save.SaveData.LoadManagerGame();
     }
 }

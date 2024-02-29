@@ -34,7 +34,7 @@ public class Door_Base : MonoBehaviour
     GameObject CreateDoor(string name)
     {
         GameObject doorGO = new GameObject($"Door_{name}");
-        doorGO.transform.parent = this.transform;
+        doorGO.transform.parent = transform;
         Door door = doorGO.AddComponent<Door>();
         door.InitialiseDoor(this, DoorColor);
         return doorGO;

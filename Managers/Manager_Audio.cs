@@ -61,7 +61,7 @@ public class LocalParameter
 {
     [SerializeField] string _name;
     public FMOD.Studio.PARAMETER_ID ParameterID { get; private set; }
-    [Range(0,1)]public float Value;
+    [field: SerializeField] [field: Range(0, 1)] public float Value { get; private set; }
 
     public LocalParameter SetParameterID(string name, FMOD.Studio.PARAMETER_ID parameterID)
     {

@@ -24,9 +24,9 @@ public class Spawner_XOY : MonoBehaviour
 
         XoySprites = new Sprite[] { X, O, Y };
 
-        XParent = Manager_Game.Instance.FindTransformRecursively(transform, "X");
-        OParent = Manager_Game.Instance.FindTransformRecursively(transform, "O");
-        YParent = Manager_Game.Instance.FindTransformRecursively(transform, "Y");
+        XParent = Manager_Game.FindTransformRecursively(transform, "X");
+        OParent = Manager_Game.FindTransformRecursively(transform, "O");
+        YParent = Manager_Game.FindTransformRecursively(transform, "Y");
 
         InitialisePuzzle();
     }

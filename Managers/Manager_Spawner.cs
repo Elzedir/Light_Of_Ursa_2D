@@ -1,9 +1,10 @@
+using Newtonsoft.Json;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class Manager_Spawner : MonoBehaviour
+public class Manager_Spawner : MonoBehaviour, IDataPersistence
 {
     public static Manager_Spawner Instance;
     List<GameObject> _spawners = new();
@@ -52,6 +53,23 @@ public class Manager_Spawner : MonoBehaviour
         }
 
     }
+
+    public void SaveData(GameData data)
+    {
+        foreach (var puzzle in _allPuzzleData)
+        {
+            data.Puzzles[puzzle.Key] = JsonConvert.SerializeObject(puzzle, Formatting.Indented);
+        }
+    }
+
+    public void LoadData(GameData data)
+    {
+        foreach(var puzzle in data.Puzzles)
+        {
+            _allPuzzleData[puzzle.Key] = JsonConvert.DeserializeObject<PuzzleData>(puzzle.Value);
+        }
+    }
+
     public void StorePuzzleStates()
     {
         foreach (Transform child in PuzzleSpawner.transform)

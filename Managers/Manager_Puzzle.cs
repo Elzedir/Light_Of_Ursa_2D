@@ -34,9 +34,6 @@ public class Manager_Puzzle : MonoBehaviour
 {
     public static Manager_Puzzle Instance;
 
-    public event Action OnTakeHit;
-    public event Action<string> OnUseStamina;
-
     public Interactable_Puzzle Puzzle;
 
     bool _puzzleActive;
@@ -66,7 +63,7 @@ public class Manager_Puzzle : MonoBehaviour
 
         if (duration == 0 && score == 0) { Debug.Log("Duration and score cannot both be 0."); return; }
 
-        Manager_Game.Instance.FindTransformRecursively(transform, Puzzle.PuzzleSet.ToString()).gameObject.SetActive(true);
+        Manager_Game.FindTransformRecursively(transform, Puzzle.PuzzleSet.ToString()).gameObject.SetActive(true);
 
         if (duration > 0) { _puzzleDuration = duration; _puzzleActive = true; }
 
@@ -86,7 +83,7 @@ public class Manager_Puzzle : MonoBehaviour
                 return;
         }
 
-        Manager_Game.Instance.FindTransformRecursively(GameObject.Find("Canvas").transform, "Puzzle_Information").gameObject.SetActive(setActive);
+        Manager_Game.FindTransformRecursively(GameObject.Find("Canvas").transform, "Puzzle_Information").gameObject.SetActive(setActive);
     }
 
     void Update()
@@ -110,6 +107,7 @@ public class Manager_Puzzle : MonoBehaviour
         if (completed) { Manager_Game.Instance.LoadScene(puzzle: Puzzle); } else Manager_Game.Instance.LoadScene();
     }
 
+    public event Action OnTakeHit;
     public void TakeDamage()
     {
         _health -= 1;
@@ -119,6 +117,7 @@ public class Manager_Puzzle : MonoBehaviour
         StartCoroutine(InvulnerabilityPhase());
     }
 
+    public event Action<string> OnUseStamina;
     public void UseStamina(string stamina)
     {
         OnUseStamina?.Invoke(stamina);

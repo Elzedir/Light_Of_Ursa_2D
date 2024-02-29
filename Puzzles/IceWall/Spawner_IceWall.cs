@@ -13,7 +13,7 @@ public class Spawner_IceWall : MonoBehaviour
 
     public Cell_IceWall[,] Cells { get; private set; }
     Transform _cellParent;
-    int _cellCount = 0;
+    //int _cellCount = 0;
     Cell_IceWall _playerLastCell;
 
     int _rows = 10;
