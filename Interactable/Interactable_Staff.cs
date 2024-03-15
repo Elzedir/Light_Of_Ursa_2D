@@ -10,7 +10,7 @@ public class Interactable_Staff : Interactable
     {
         base.Interact(interactor);
 
-        Manager_Game.Instance.Player.PickUpStaff();
+        Manager_Game.Instance.PickUpStaff();
 
         gameObject.SetActive(false);
     }

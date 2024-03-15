@@ -1,18 +1,20 @@
+using FMOD.Studio;
+using FMODUnity;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class Manager_Audio : MonoBehaviour
 {
     [SerializeField] FMODUnity.EventReference _currentSongReference;
     FMOD.Studio.EventInstance _currentSongInstance;
 
-    [SerializeField] public List<LocalParameter> _localParameters;
-    [SerializeField] List<GlobalParameter> _globalParameters;
+    [SerializeField] public List<LocalParameter> LocalParameters;
+    [SerializeField] public List<GlobalParameter> GlobalParameters;
 
     private void Start()
     {
+        _currentSongReference = RuntimeManager.PathToEventReference("event:/Test_01");
         PlaySong(_currentSongReference);
     }
 
@@ -28,8 +30,10 @@ public class Manager_Audio : MonoBehaviour
         {
             FMOD.RESULT result = eventDescription.getParameterDescriptionByIndex(i, out FMOD.Studio.PARAMETER_DESCRIPTION parameterDescription);
             if (result != FMOD.RESULT.OK) Debug.LogError($"Failed to get parameter description for index {i}: {result}");
-            LocalParameter localParameter = new LocalParameter().SetParameterID(parameterDescription.name, parameterDescription.id);
-            _localParameters.Add(localParameter);
+
+            // Find a way to split local and global parameters
+
+            LocalParameters.Add(new LocalParameter().SetParameterID(parameterDescription.name, parameterDescription.id, this));
         }
 
         _currentSongInstance.set3DAttributes(FMODUnity.RuntimeUtils.To3DAttributes(gameObject));
@@ -39,20 +43,25 @@ public class Manager_Audio : MonoBehaviour
     void Update()
     {
         // Change this to me only updated according to code rather than this which is for editor.
-        foreach (LocalParameter parameter in _localParameters) ChangeLocalParameters(parameter);
-        foreach (GlobalParameter parameter in _globalParameters) ChangeGlobalParameters(parameter);
+        foreach (LocalParameter parameter in LocalParameters) UpdateLocalParameter(parameter);
+        foreach (GlobalParameter parameter in GlobalParameters) UpdateGlobalParameter(parameter);
 
         _currentSongInstance.set3DAttributes(FMODUnity.RuntimeUtils.To3DAttributes(gameObject));
     }
 
-    public void ChangeLocalParameters(LocalParameter parameter)
+    public void UpdateLocalParameter(LocalParameter parameter)
     {
         _currentSongInstance.setParameterByID(parameter.ParameterID, parameter.Value);
     }
 
-    public void ChangeGlobalParameters(GlobalParameter parameter)
+    public void UpdateGlobalParameter(GlobalParameter parameter)
     {
         FMODUnity.RuntimeManager.StudioSystem.setParameterByID(parameter.ParameterID, parameter.Value);
+    }
+
+    void OnDestroy()
+    {
+        _currentSongInstance.stop(FMOD.Studio.STOP_MODE.IMMEDIATE);
     }
 }
 
@@ -62,11 +71,19 @@ public class LocalParameter
     [SerializeField] string _name;
     public FMOD.Studio.PARAMETER_ID ParameterID { get; private set; }
     [field: SerializeField] [field: Range(0, 1)] public float Value { get; private set; }
+    Manager_Audio _manager;
 
-    public LocalParameter SetParameterID(string name, FMOD.Studio.PARAMETER_ID parameterID)
+    public void SetValue(int value)
+    {
+        Value = value;
+        _manager.UpdateLocalParameter(this);
+    }
+
+    public LocalParameter SetParameterID(string name, FMOD.Studio.PARAMETER_ID parameterID, Manager_Audio manager)
     {
         _name = name;
         ParameterID = parameterID;
+        _manager = manager;
 
         return this;
     }

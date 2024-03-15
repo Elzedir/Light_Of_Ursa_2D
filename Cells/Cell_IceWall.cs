@@ -13,6 +13,8 @@ public class Cell_IceWall : Cell_Base
     bool _onCooldown = false;
     Coroutine _autoBreak;
 
+    bool _staminaFinishCell = false;
+
     public void InitialiseCell(Coordinates coordinates, Spawner_IceWall spawner, int cellHealth)
     {
         Coordinates = coordinates;
@@ -39,7 +41,12 @@ public class Cell_IceWall : Cell_Base
 
     void OnTriggerEnter2D(Collider2D collider)
     {
-        if (collider.gameObject.name == "Focus") { _spawner.RefreshWall(this); }
+        if (collider.gameObject.name == "Focus") 
+        { 
+            _spawner.RefreshWall(this);
+
+            if (_staminaFinishCell) Manager_Puzzle.Instance.PuzzleEnd(true);
+        }
     }
 
     public bool DecreaseHealth(int maxHealth)
@@ -95,5 +102,11 @@ public class Cell_IceWall : Cell_Base
     {
         yield return new WaitForSeconds(1);
         _onCooldown = false;
+    }
+
+    public void StaminaFinishCell()
+    {
+        MarkCell(Color.red);
+        _staminaFinishCell = true;
     }
 }

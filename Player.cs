@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class Player : Controller, IDataPersistence
 {
@@ -10,8 +11,8 @@ public class Player : Controller, IDataPersistence
     bool _moved;
     RaycastHit2D _hit;
     public Interactable ClosestInteractableObject; //public Interactable ClosestInteractableObject { get { return _closestInteractableObject; } }
-    public bool _hasStaff = false;
     List<Interactable> _interactableObjects = new();
+    [SerializeField] bool _hasStaff;
 
     public BoxCollider2D _fireflyWanderZone; public BoxCollider2D FireflyWanderZone { get { return _fireflyWanderZone; } }
 
@@ -19,6 +20,17 @@ public class Player : Controller, IDataPersistence
     {
         _coll = GetComponent<BoxCollider2D>();
         _animator = GetComponent<Animator>();
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    public void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        
+    }
+
+    void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
     public void SaveData(GameData data)
@@ -28,13 +40,15 @@ public class Player : Controller, IDataPersistence
 
     public void LoadData(GameData data)
     {
-        transform.position = data.PlayerPosition;
+        //transform.position = data.PlayerPosition;
     }
 
     protected override void Update()
     {
         _moved = false;
         base.Update();
+
+        if (_hasStaff != Manager_Game.Instance.PlayerHasStaff) { _hasStaff = Manager_Game.Instance.PlayerHasStaff; _animator.SetBool("HasStaff", _hasStaff); }
 
         if (Manager_Game.Instance.CurrentState != GameState.Playing) return;
 
@@ -106,22 +120,12 @@ public class Player : Controller, IDataPersistence
         }
     }
 
-    public void PickUpStaff()
-    {
-        if (!_hasStaff)
-        {
-            _hasStaff = true;
-
-            StartCoroutine(PickUpStaffAction());
-        }
-    }
-
-    IEnumerator PickUpStaffAction()
+    public IEnumerator PickUpStaffAction()
     {
         _animator.SetTrigger("PickupStaff");
 
         yield return new WaitForSeconds(2);
 
-        _animator.SetBool("HasStaff", true);
+        _animator.SetBool("HasStaff", _hasStaff);
     }
 }

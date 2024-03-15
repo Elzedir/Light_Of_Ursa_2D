@@ -1,15 +1,22 @@
 using System.Collections;
+using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Tilemaps;
 
-public class Controller_Agent : MonoBehaviour
+public class Controller_Agent : MonoBehaviour, PathfinderMover
 {
+    public Pathfinder_Base Pathfinder { get; set; }
+    Coroutine _movingCoroutine;
+    [SerializeField] [Range(0, 1)] float _pathfinderCooldown = 1;
+    [SerializeField] Vector3 _testTargetPositions;
+
     protected NavMeshAgent _agent;
     Animator _animator;
-    [SerializeField] Vector3 _targetPosition;
-    [SerializeField] GameObject _targetGO;
-    float _speed;
+    [SerializeField] protected Vector3 _targetPosition;
+    [SerializeField] protected GameObject _targetGO;
+    float _speed = 5;
 
     float _followDistance;
     WanderData _wanderData;
@@ -19,6 +26,7 @@ public class Controller_Agent : MonoBehaviour
     {
         _agent = GetComponent<NavMeshAgent>();
         _animator = GetComponent<Animator>();
+        Pathfinder = new Pathfinder_Base();
     }
 
     protected virtual void Start()
@@ -49,12 +57,30 @@ public class Controller_Agent : MonoBehaviour
 
     protected virtual void Update()
     {
-        if (!_canMove) return;
+        //if (!_canMove) return;
 
-        if (_wanderData != null) Wander();
-        else Follow();
-        AnimationAndDirection();
+        _pathfinderCooldown -= Time.deltaTime;
+
+        if (_pathfinderCooldown <= 0)
+        {
+            if (_targetPosition != Vector3.zero && Vector2.Distance(transform.localPosition, _targetPosition) > 0.9f)
+            {
+                Debug.Log("Moving");
+                Pathfinder.RunPathfinderOpen(new Coordinates((int)transform.localPosition.x, (int)transform.localPosition.y), new Coordinates((int)_targetPosition.x, (int)_targetPosition.y), this); 
+                _pathfinderCooldown = 1.0f;
+            }
+        }
+        
+        //if (_wanderData != null) Wander();
+        //else Follow();
+        //AnimationAndDirection();
     }
+
+    //void OnDrawGizmos()
+    //{
+    //    Gizmos.color = Color.red;
+    //    Gizmos.DrawLine(transform.localPosition, _testTargetPositions);
+    //}
 
     void Follow()
     {
@@ -124,6 +150,53 @@ public class Controller_Agent : MonoBehaviour
         _followDistance = 0;
         _wanderData = null;
         _canMove = false;
+    }
+
+    public Node_Base GetStartNode()
+    {
+        return Pathfinder_Base.GetNodeAtPosition((int)transform.localPosition.x + Manager_Grid.XOffset, (int)transform.localPosition.y + Manager_Grid.YOffset);
+    }
+
+    public void MoveTo(Node_Base target)
+    {
+        if (_movingCoroutine != null) StopMoving();
+
+        _movingCoroutine = StartCoroutine(FollowPath(Pathfinder.RetrievePath(GetStartNode(), target)));
+    }
+
+    IEnumerator FollowPath(List<Coordinates> path)
+    {
+        foreach (Coordinates coordinate in path)
+        {
+            _testTargetPositions = new Vector3(coordinate.X - Manager_Grid.XOffset + 0.5f, coordinate.Y - Manager_Grid.YOffset + 0.5f, 0);
+            yield return Move(new Vector3(coordinate.X - Manager_Grid.XOffset + 0.5f, coordinate.Y - Manager_Grid.YOffset + 0.5f, 0));
+        }
+
+        _targetPosition = Vector3.zero;
+        _movingCoroutine = null;
+    }
+
+    IEnumerator Move(Vector3 nextPosition)
+    {
+        while (Vector3.Distance(transform.localPosition, nextPosition) > 0.1f)
+        {
+            transform.localPosition = Vector3.MoveTowards(transform.localPosition, nextPosition, _speed * Time.deltaTime);
+            if (_movingCoroutine == null) break;
+            yield return null;
+        }
+    }
+
+    public void StopMoving()
+    {
+        if (_movingCoroutine == null) return;
+
+        StopCoroutine(_movingCoroutine);
+        _movingCoroutine = null;
+    }
+
+    public LinkedList<Coordinates> GetObstaclesInVision()
+    {
+        return new LinkedList<Coordinates>();
     }
 }
 

@@ -9,6 +9,7 @@ public class PuzzleData
     public PuzzleState PuzzleState;
     public PuzzleObjectives PuzzleObjectives;
     public IceWallData IceWallData;
+    public PuzzleSaveData PuzzleSaveData;
 
     public PuzzleData
         (
@@ -24,6 +25,28 @@ public class PuzzleData
         PuzzleState = puzzleState;
         PuzzleObjectives = puzzleObjectives;
         IceWallData = iceWallData;
+
+        PuzzleSaveData = new PuzzleSaveData(PuzzleID, PuzzleState.PuzzleCompleted);
+    }
+
+    public void LoadData(PuzzleSaveData data)
+    {
+        PuzzleSaveData = data;
+
+        PuzzleState.PuzzleCompleted = data.PuzzleCompleted;
+    }
+}
+
+[Serializable]
+public class PuzzleSaveData
+{
+    public string PuzzleID { get; private set; }
+    public bool PuzzleCompleted { get; private set; }
+
+    public PuzzleSaveData(string puzzleID, bool puzzleCompleted)
+    {
+        PuzzleID = puzzleID;
+        PuzzleCompleted = puzzleCompleted;
     }
 }
 
@@ -73,23 +96,26 @@ public class IceWallData
 {
     [Range(0, 50)] public int Rows = 10;
     [Range(0, 50)] public int Columns = 10;
-    public Coordinates StartPosition;
-    public (int, int) CellHealthRange;
-    public int PlayerExtraStaminaPercentage;
+    public Coordinates StartPosition = new Coordinates(0, 0);
+    public int CellHealthMin = 5;
+    public int CellHealthMax = 20;
+    public int PlayerExtraStaminaPercentage = 10;
 
     public IceWallData
         (
         int rows,
         int columns,
         Coordinates startPosition,
-        (int, int) cellHealthRange,
+        int cellHealthMin,
+        int cellHealthMax,
         int playerExtraStaminaPercentage
         )
     {
         Rows = rows; 
         Columns = columns;
         StartPosition = startPosition;
-        CellHealthRange = cellHealthRange;
+        CellHealthMin = cellHealthMin;
+        CellHealthMax = cellHealthMax;
         PlayerExtraStaminaPercentage = playerExtraStaminaPercentage;
     }
 }

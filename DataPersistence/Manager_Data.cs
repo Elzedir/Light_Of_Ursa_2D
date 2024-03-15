@@ -45,12 +45,12 @@ public class Manager_Data : MonoBehaviour
         _initializeSelectedProfileId();
     }
 
-    private void OnEnable()
+    void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
-    private void OnDisable()
+    void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
     }
@@ -171,7 +171,8 @@ public class FileDataHandler
 
     public GameData Load(string profileID, bool allowRestoreFromBackup = true)
     {
-        if (profileID == null) return null;
+        if (profileID == null ||
+            Manager_Game.Instance.CurrentState == GameState.MainMenu) return null;
 
         string fullPath = Path.Combine(_directoryPath, profileID, _fileName);
         GameData loadedData = null;
@@ -214,7 +215,9 @@ public class FileDataHandler
 
     public void Save(GameData data, string profileID)
     {
-        if (profileID == null) return;
+        if (profileID == null || 
+            Manager_Game.Instance.CurrentState == GameState.MainMenu // NB Have to include Dead, Puzzle, etc. All the states
+            ) return;
         
         string fullPath = Path.Combine(_directoryPath, profileID, _fileName);
         string backupFilePath = fullPath + _backupExtension;
@@ -365,7 +368,7 @@ public class SerializableDictionary<TKey, TValue> : Dictionary<TKey, TValue>, IS
     {
         Clear();
 
-        if (_keys.Count != _values.Count) Debug.LogError($"Key count: {_keys.Count} does not match value count: {_values.Count}");
+        if (_keys.Count != _values.Count) { Debug.LogError($"Key count: {_keys.Count} does not match value count: {_values.Count}"); }
 
         for (int i = 0; i < _keys.Count; i++) this.Add(_keys[i], _values[i]);
     }
@@ -376,16 +379,18 @@ public class GameData
 {
     public long LastUpdated;
     public Vector3 PlayerPosition;
+    public bool StaffPickedUp;
 
     // int QuestID, 
 
-    public SerializableDictionary<string, string> Levels;
+    public SerializableDictionary<string, string> Quests;
     public SerializableDictionary<string, string> Puzzles;
 
     public GameData()
     {
         PlayerPosition = Vector3.zero;
+        StaffPickedUp = false;
         Puzzles = new();
-        Levels = new();
+        Quests = new();
     }
 }

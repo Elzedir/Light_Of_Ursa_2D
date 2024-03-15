@@ -7,10 +7,10 @@ using UnityEngine;
 public class Manager_Progress : MonoBehaviour, IDataPersistence
 {
     public static Manager_Progress Instance;
-    public Dictionary<string, Level> LevelList { get; private set; }
     public Dictionary<string, Quest> QuestList { get; private set; }
     bool _initialised = false;
 
+    // Find out what information to save about the quests. Doesn't have to be everything.
 
     void Awake()
     {
@@ -21,27 +21,26 @@ public class Manager_Progress : MonoBehaviour, IDataPersistence
     void _initialise()
     {
         _initialised = true;
-        LevelList = new();
         QuestList = new();
 
         _mainQuests();
         _sideQuests();
-        _ursusCave();
-        _river();
     }
 
     void _mainQuests()
     {
-        Quest quest = new Quest(
+        Quest killTestQuest = new Quest(
             0,
-            "Test Quest",
-            new List<(int, string)>()
+            "Kill Test Quest",
+            "You have been tasked by the farmer to kill the thing.",
+            new List<Stage>
             {
-                (0, "Find the thing"),
-                (1, "Kill the thing"),
-                (2, "Return with the thing")
+                new Stage (0, "Find the thing", "The farmer has asked you to kill the thing. First, find it.", 0),
+                new Stage (1, "Kill the thing", "You have found the thing, now, kill it.", 0),
+                new Stage (2, "Return with the thing", "You have killed the thing, now, return with it. A hero.", 0)
             }
             );
+        QuestList.Add("Kill Test Quest", killTestQuest);
     }
 
     void _sideQuests()
@@ -49,54 +48,85 @@ public class Manager_Progress : MonoBehaviour, IDataPersistence
 
     }
 
-    void _ursusCave()
-    {
-
-    }
-
-    void _river()
-    {
-
-    }
-
     public void SaveData(GameData data)
     {
-        foreach (var level in LevelList)
+        foreach (var quest in QuestList)
         {
-            data.Levels[level.Key] = JsonConvert.SerializeObject(level, Formatting.Indented);
+            data.Quests[quest.Key] = JsonConvert.SerializeObject(quest.Value.QuestSaveData);
         }
     }
 
     public void LoadData(GameData data)
     {
-        foreach (var level in data.Puzzles)
+        foreach (var quest in data.Quests)
         {
-            LevelList[level.Key] = JsonConvert.DeserializeObject<Level>(level.Value);
+            QuestList[quest.Key].LoadData(JsonConvert.DeserializeObject<QuestSaveData>(quest.Value));
         }
     }
-}
-
-public class Level
-{
-    public List<FMODUnity.EventReference> SongList;
 }
 public class Quest
 {
     public int QuestID { get; private set; }
     public string QuestName { get; private set; }
+    public string QuestDescription { get; private set; }
+    public List<Stage> QuestStages { get; private set; }
+    public QuestSaveData QuestSaveData { get; private set; }
 
-    public Dictionary<(int, string), bool> Stages;
-
-    public Quest(int questID, string questName, List<(int, string)> stages)
+    public Quest(int questID, string questName, string questDescription, List<Stage> questStages)
     {
         QuestID = questID;
         QuestName = questName;
+        QuestDescription = questDescription;
+        QuestStages = questStages;
 
-        Stages = new();
+        QuestSaveData = new QuestSaveData(QuestStages);
+    }
 
-        foreach((int, string) stage in stages)
+    public void LoadData(QuestSaveData data)
+    {
+        QuestSaveData = data;
+
+        foreach(var stage in data.SaveQuestStages)
         {
-            Stages[stage] = false;
+            QuestStages[stage.Key].SetStage(stage.Value);
+        }
+    }
+}
+
+public class Stage
+{
+    public int StageID { get; private set; }
+    public string StageTitle { get; private set; }
+    public string StageDescription { get; private set; }
+    public int StageCompleted { get; private set; }
+
+    public Stage(int stageID, string stageTitle, string stageDescription, int stageCompleted)
+    {
+        StageID = stageID;
+        StageTitle = stageTitle;
+        StageDescription = stageDescription;
+        StageCompleted = stageCompleted;
+    }
+
+    public void SetStage(int stageCompleted)
+    {
+        StageCompleted = stageCompleted;
+    }
+}
+
+public class QuestSaveData
+{
+    public Dictionary<int, int> SaveQuestStages { get; private set; }
+    
+    public QuestSaveData(List<Stage> stages)
+    {
+        SaveQuestStages = new();
+
+        if (stages == null) return;
+
+        foreach (Stage stage in stages)
+        {
+            SaveQuestStages[stage.StageID] = stages[stage.StageID].StageCompleted;
         }
     }
 }

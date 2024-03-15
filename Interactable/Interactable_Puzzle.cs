@@ -37,11 +37,12 @@ public class Interactable_Puzzle : Interactable
         if (PuzzleData.PuzzleState.PuzzleRepeatable) return;
 
         PuzzleData.PuzzleState.PuzzleCompleted = true;
+        GetComponent<BoxCollider2D>().isTrigger = true;
+        GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>("Sprites/Blue ground");
 
         switch (PuzzleSet)
         {
             case PuzzleSet.Directional:
-                GetComponent<BoxCollider2D>().isTrigger = true;
                 break;
             default:
                 break;
@@ -77,6 +78,7 @@ public class PuzzleDataEditor : Editor
             if (iceWallTypes.isArray && iceWallTypes.arraySize > 0)
             {
                 EditorGUILayout.PropertyField(_puzzleData.FindPropertyRelative("PuzzleObjectives"), true);
+                EditorGUILayout.PropertyField(_puzzleData.FindPropertyRelative("PuzzleState"), true);
                 EditorGUILayout.PropertyField(_puzzleData.FindPropertyRelative("IceWallData"), true);
             }
         }

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Playables;
 using UnityEngine.SceneManagement;
@@ -8,39 +9,105 @@ using UnityEngine.Timeline;
 public class Manager_Cutscene : MonoBehaviour
 {
     public static Manager_Cutscene Instance;
+
+    [Header("Debugging")]
+    [SerializeField] bool _playCutscenes = true;
+
     PlayableDirector _director;
-    bool _cutscenePlayed = false;
+
+    public Dictionary<string, List<Cutscene>> ScriptedCutscenes;
 
     private void Awake()
     {
         if (Instance == null) { Instance = this; DontDestroyOnLoad(gameObject); } else if (Instance != this) Destroy(gameObject);
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        _initialiseScriptedCutscenes();
+    }
+
+    public void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
         _director = GetComponent<PlayableDirector>();
-    }
 
-    void Start()
-    {
-        
-    }
+        if (ScriptedCutscenes.TryGetValue(scene.name, out List<Cutscene> cutscenes))
+        {
+            foreach(Cutscene cutscene in cutscenes)
+            {
+                cutscene.SetDirector(GameObject.Find(cutscene.Name).GetComponent<PlayableDirector>());
 
-    void Update()
-    {
-        if (_director.state == PlayState.Playing && Manager_Game.Instance.CurrentState != GameState.Cinematic)
-        {
-            Manager_Game.Instance.ChangeGameState(GameState.Cinematic);
-        }
-        else if (_director.state != PlayState.Playing && Manager_Game.Instance.CurrentState == GameState.Cinematic && _cutscenePlayed)
-        {
-            Manager_Game.Instance.ChangeGameState(GameState.Playing);
-            _cutscenePlayed = false;
+                if (cutscene.IsConditionsFulfilled(scene.name))
+                {
+                    StartCoroutine(PlayCutscene(cutscene.Director));
+                }
+            }
         }
     }
 
-    public void PlayCutscene(string name)
+    void OnDestroy()
     {
-        TimelineAsset cutscene = Resources.Load<TimelineAsset>($"Cutscenes/{name}");
-        _director.playableAsset = cutscene;
-        _director.Play();
-        _cutscenePlayed = true;
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    public IEnumerator PlayCutscene(PlayableDirector director)
+    {
+        if (!_playCutscenes) yield break;
+
+        yield return null;
+
+        Manager_Game.Instance.ChangeGameState(GameState.Cinematic);
+
+        director.Play();
+
+        yield return new WaitForSeconds((float)director.duration);
+
+        Manager_Game.Instance.ChangeGameState(GameState.Playing);
+    }
+
+    void _initialiseScriptedCutscenes()
+    {
+        ScriptedCutscenes = new();
+        _Old_Tree();
+    }
+
+    void _Old_Tree()
+    {
+        ScriptedCutscenes.Add(
+            "Old_Tree",
+            new List<Cutscene>
+            {
+                new Cutscene("Old_Tree_Intro", "Old_Tree")
+            }
+            );
+    }
+}
+
+public class Cutscene
+{
+    public PlayableDirector Director { get; private set; }
+    public bool HasBeenPlayed { get; private set; }
+    public string Name { get; private set; }
+    public string LevelName { get; private set; }
+
+    public Cutscene(string name, string levelName)
+    {
+        HasBeenPlayed = false;
+        Name = name;
+        LevelName = levelName;
+    }
+
+    public void SetDirector(PlayableDirector director)
+    {
+        Director = director;
+    }
+
+    public bool IsConditionsFulfilled(string level)
+    {
+        if (
+            !HasBeenPlayed &&
+            LevelName == level
+            )
+        return true;
+
+        return false;
     }
 }
 

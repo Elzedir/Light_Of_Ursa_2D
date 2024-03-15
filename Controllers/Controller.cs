@@ -16,6 +16,8 @@ public abstract class Controller : MonoBehaviour
 
     protected virtual void Update()
     {
+        if (Manager_Game.Instance.CurrentState != GameState.Playing && Manager_Game.Instance.CurrentState != GameState.Puzzle) return;
+
         foreach (var actionKey in KeyBindings.SinglePressKeyActions.Keys)
         {
             if (Input.GetKeyDown(KeyBindings.Keys[actionKey]))

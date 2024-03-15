@@ -1,9 +1,5 @@
-using NUnit.Framework;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using Unity.Collections.LowLevel.Unsafe;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
 public class Pathfinder_Base
@@ -15,6 +11,10 @@ public class Pathfinder_Base
     PuzzleSet _puzzleSet;
 
     #region Initialisation
+    public void RunPathfinderOpen(Coordinates start, Coordinates target, PathfinderMover mover)
+    {
+        RunPathfinder(Manager_Grid.Rows, Manager_Grid.Columns, new Coordinates(start.X + Manager_Grid.XOffset, start.Y + Manager_Grid.YOffset), new Coordinates(target.X + Manager_Grid.XOffset, target.Y + Manager_Grid.YOffset), mover, PuzzleSet.None);
+    }
     public void RunPathfinder(int rows, int columns, Coordinates start, Coordinates target, PathfinderMover mover, PuzzleSet puzzleSet)
     {
         if (start.Equals(target)) return;
@@ -249,6 +249,7 @@ public class NodeArray
     public static Node_Base[,] InitializeArray(int rows, int columns)
     {
         Nodes = new Node_Base[rows, columns];
+
         for (int row = 0; row < Nodes.GetLength(0); row++)
         {
             for (int column = 0; column < Nodes.GetLength(1); column++)
@@ -321,7 +322,7 @@ public class Node_Base
 
             return cost;
         }
-        else if (puzzleSet == PuzzleSet.IceWall)
+        else if (puzzleSet == PuzzleSet.IceWall || puzzleSet == PuzzleSet.None)
         {
             return successor.MovementCost;
         }

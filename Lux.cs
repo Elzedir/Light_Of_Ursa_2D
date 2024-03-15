@@ -54,6 +54,6 @@ public class Lux : Controller_Agent
 
     void WanderAroundUrsus()
     {
-
+        
     }
 }

@@ -37,9 +37,14 @@ public class CameraController : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (Manager_Game.Instance.CurrentState == GameState.Cinematic && lookAt != null)
+        {
+            lookAt = null;
+        }
+
         if (Manager_Game.Instance.CurrentState == GameState.Playing)
         {
-            if ((_player == null || _player.gameObject != Manager_Game.Instance.Player.gameObject))
+            if ((_player == null || lookAt == null || _player.gameObject != Manager_Game.Instance.Player.gameObject))
             {
                 if (Manager_Game.Instance.Player == null) Manager_Game.Instance.SetPlayer();
                 _player = Manager_Game.Instance.Player;

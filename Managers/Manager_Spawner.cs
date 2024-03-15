@@ -1,6 +1,7 @@
 using Newtonsoft.Json;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.SearchService;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -16,27 +17,30 @@ public class Manager_Spawner : MonoBehaviour, IDataPersistence
 
     void Awake()
     {
-        if (Instance == null) { Instance = this; DontDestroyOnLoad(gameObject); SceneManager.sceneLoaded += OnSceneLoad; } else if (Instance != this) Destroy(gameObject);
+        if (Instance == null) { Instance = this; DontDestroyOnLoad(gameObject); } else if (Instance != this) Destroy(gameObject);
         AssignSpawners();
     }
 
-    void OnDestroy()
+    public void SaveData(GameData data)
     {
-        SceneManager.sceneLoaded -= OnSceneLoad;
+        foreach (var puzzle in _allPuzzleData)
+        {
+            data.Puzzles[puzzle.Key] = JsonConvert.SerializeObject(puzzle.Value.PuzzleSaveData, Formatting.Indented);
+        }
     }
 
-    void OnSceneLoad(Scene scene, LoadSceneMode mode)
+    public void LoadData(GameData data)
     {
-        if (scene.name == "Puzzle" || scene.name == "Main_Menu") return;
-        StartCoroutine(OnSceneLoadNumerator());
+        StartCoroutine(OnLoadNumerator(data));
     }
 
-    IEnumerator OnSceneLoadNumerator()
+    IEnumerator OnLoadNumerator(GameData data)
     {
         yield return new WaitForSeconds(0.1f);
 
         AssignSpawners();
-        RestorePuzzleStates();
+
+        RestorePuzzleStates(data);
     }
 
     void AssignSpawners()
@@ -51,23 +55,6 @@ public class Manager_Spawner : MonoBehaviour, IDataPersistence
 
             if (child.gameObject.name == "PuzzleSpawner") PuzzleSpawner = child.gameObject;
         }
-
-    }
-
-    public void SaveData(GameData data)
-    {
-        foreach (var puzzle in _allPuzzleData)
-        {
-            data.Puzzles[puzzle.Key] = JsonConvert.SerializeObject(puzzle, Formatting.Indented);
-        }
-    }
-
-    public void LoadData(GameData data)
-    {
-        foreach(var puzzle in data.Puzzles)
-        {
-            _allPuzzleData[puzzle.Key] = JsonConvert.DeserializeObject<PuzzleData>(puzzle.Value);
-        }
     }
 
     public void StorePuzzleStates()
@@ -77,7 +64,7 @@ public class Manager_Spawner : MonoBehaviour, IDataPersistence
             if (child.TryGetComponent<Interactable_Puzzle>(out Interactable_Puzzle puzzle)) SavePuzzleState(puzzle.PuzzleData);
         }
     }
-    public void RestorePuzzleStates()
+    public void RestorePuzzleStates(GameData data)
     {
         if (PuzzleSpawner == null) { Debug.Log("Puzzle Spawner not present in scene."); return; }
 
@@ -86,6 +73,19 @@ public class Manager_Spawner : MonoBehaviour, IDataPersistence
             if (child.TryGetComponent<Interactable_Puzzle>(out Interactable_Puzzle puzzle))
             {
                 LoadPuzzleState(puzzle); SavePuzzleState(puzzle.PuzzleData);
+            }
+        }
+
+        foreach (var puzzleData in data.Puzzles)
+        {
+            _allPuzzleData[puzzleData.Key].LoadData(JsonConvert.DeserializeObject<PuzzleSaveData>(puzzleData.Value));
+        }
+
+        foreach (Transform child in PuzzleSpawner.transform)
+        {
+            if (child.TryGetComponent<Interactable_Puzzle>(out Interactable_Puzzle puzzle))
+            {
+                if (puzzle.PuzzleData.PuzzleState.PuzzleCompleted) puzzle.CompletePuzzle();
             }
         }
 
@@ -111,5 +111,19 @@ public class Manager_Spawner : MonoBehaviour, IDataPersistence
     {
         if (_allPuzzleData.ContainsKey(puzzleID)) GameObject.Find(puzzleID).GetComponent<Interactable_Puzzle>().CompletePuzzle(); 
         else Debug.Log($"_allPuzzleData does not contain {puzzleID}");
+
+        Manager_Audio managerAudio = GameObject.Find("Manager_Audio").GetComponent<Manager_Audio>();
+
+        int i = 0;
+
+        foreach (Transform child in PuzzleSpawner.transform)
+        {
+            if (child.GetComponent<Interactable_Puzzle>().PuzzleData.PuzzleState.PuzzleCompleted)
+            {
+                managerAudio.LocalParameters[i].SetValue(1);
+            }
+
+            i++;
+        }
     }
 }

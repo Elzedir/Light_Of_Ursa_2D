@@ -16,8 +16,8 @@ public class Spawner_IceWall : MonoBehaviour
     //int _cellCount = 0;
     Cell_IceWall _playerLastCell;
 
-    int _rows = 10;
-    int _columns = 10;
+    int _rows;
+    int _columns;
     int _maxDistance = 0;
     Cell_IceWall _furthestCell;
 
@@ -25,24 +25,30 @@ public class Spawner_IceWall : MonoBehaviour
 
     Controller_Puzzle_IceWall _player;
 
-    (int, int) _cellHealthRange = (5, 20);
+    (int, int) _cellHealthRange;
     int _maxCellHealth;
 
-    int _playerExtraStamina = 10;
+    int _playerExtraStamina;
 
     void Start()
     {
-        List<IceWallType> gameModes = new List<IceWallType>();
+        //List<IceWallType> gameModes = new List<IceWallType>();
 
-        gameModes.Add(IceWallType.Stamina);
+        //gameModes.Add(IceWallType.Stamina);
         //gameModes.Add(IceWallType.Shatter);
         //gameModes.Add(IceWallType.Mirror);
 
-        InitialisePuzzle(gameModes);
+        //InitialisePuzzle(gameModes);
     }
 
-    void InitialisePuzzle(List<IceWallType> gameModes)
+    public void InitialisePuzzle(List<IceWallType> gameModes, IceWallData iceWallData)
     {
+        _rows = iceWallData.Rows;
+        _columns = iceWallData.Columns;
+        _startPosition = iceWallData.StartPosition;
+        _playerExtraStamina = iceWallData.PlayerExtraStaminaPercentage;
+        _cellHealthRange = (iceWallData.CellHealthMin, iceWallData.CellHealthMax);
+
         NodeArray.Nodes = NodeArray.InitializeArray(_rows, _columns);
         _cellParent = GameObject.Find("CellParent").transform;
         _player = GameObject.Find("Focus").GetComponent<Controller_Puzzle_IceWall>();
@@ -91,7 +97,7 @@ public class Spawner_IceWall : MonoBehaviour
         
         if (_icewallTypes.Contains(IceWallType.Stamina))
         {
-            _furthestCell.MarkCell(Color.red);
+            _furthestCell.StaminaFinishCell();
             _calculatePlayerMaxStamina();
         }
     }

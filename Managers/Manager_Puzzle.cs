@@ -57,15 +57,13 @@ public class Manager_Puzzle : MonoBehaviour
         //BulletParent = GameObject.Find("BulletParent").transform;
     }
 
-    public void LoadPuzzle(float duration, float score)
+    public void LoadPuzzle()
     {
         bool setActive = false;
 
-        if (duration == 0 && score == 0) { Debug.Log("Duration and score cannot both be 0."); return; }
-
         Manager_Game.FindTransformRecursively(transform, Puzzle.PuzzleSet.ToString()).gameObject.SetActive(true);
 
-        if (duration > 0) { _puzzleDuration = duration; _puzzleActive = true; }
+        if (Puzzle.PuzzleData.PuzzleObjectives.PuzzleDuration > 0) { _puzzleDuration = Puzzle.PuzzleData.PuzzleObjectives.PuzzleDuration; _puzzleActive = true; }
 
         switch (Puzzle.PuzzleSet)
         {
@@ -73,7 +71,10 @@ public class Manager_Puzzle : MonoBehaviour
             case PuzzleSet.AntiDirectional:
             case PuzzleSet.FlappyInvaders:
             case PuzzleSet.MouseMaze:
+                setActive = true;
+                break;
             case PuzzleSet.IceWall:
+                Manager_Game.FindTransformRecursively(transform, "Grid_IceWall").gameObject.GetComponent<Spawner_IceWall>().InitialisePuzzle(Puzzle.IceWallTypes, Puzzle.PuzzleData.IceWallData);
                 setActive = true;
                 break;
             case PuzzleSet.XOYXOY:

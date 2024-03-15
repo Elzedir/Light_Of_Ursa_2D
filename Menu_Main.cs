@@ -36,6 +36,11 @@ public class Menu_Main : MonoBehaviour
         Application.Quit();
     }
 
+    public void SwitchProfile()
+    {
+        Manager_Game.FindTransformRecursively(transform.parent, "SwitchProfilePanel").gameObject.SetActive(true);
+    }
+
     public void Directional()
     {
         _runTestPuzzle(PuzzleSet.Directional);
@@ -78,7 +83,7 @@ public class Menu_Main : MonoBehaviour
         {
             Manager_Game.Instance.ChangeGameState(GameState.Puzzle);
             Manager_Puzzle.Instance.Puzzle = puzzle;
-            Manager_Puzzle.Instance.LoadPuzzle(puzzle.PuzzleData.PuzzleObjectives.PuzzleDuration, puzzle.PuzzleData.PuzzleObjectives.PuzzleScore);
+            Manager_Puzzle.Instance.LoadPuzzle();
 
             SceneManager.sceneLoaded -= OnSceneLoaded;
         }

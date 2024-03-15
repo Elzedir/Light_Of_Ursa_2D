@@ -1,5 +1,8 @@
+using Newtonsoft.Json;
 using System;
+using System.Collections;
 using UnityEngine;
+using UnityEngine.Playables;
 using UnityEngine.SceneManagement;
 
 [Serializable]
@@ -14,11 +17,11 @@ public enum GameState
     Puzzle
 }
 
-public class Manager_Game : MonoBehaviour, SaveableData
+public class Manager_Game : MonoBehaviour, IDataPersistence
 {
     public static Manager_Game Instance;
 
-    public GameState CurrentState;
+    [SerializeField] public GameState CurrentState;
 
     public Player Player;
     Vector3 _playerLastPosition;
@@ -27,6 +30,8 @@ public class Manager_Game : MonoBehaviour, SaveableData
     public string LastScene;
 
     Interactable_Puzzle _currentPuzzle;
+
+    [field: SerializeField] public bool PlayerHasStaff { get; private set; }
 
     private void Awake()
     {
@@ -37,16 +42,21 @@ public class Manager_Game : MonoBehaviour, SaveableData
         if(SceneManager.GetActiveScene().name == "Main_Menu") CurrentState = GameState.MainMenu;
 
         Manager_Spawner.OnPuzzleStatesRestored += OnPuzzleStatesRestored;
-
-        Manager_Save.OnSave += Save;
-        Manager_Save.OnLoad += Load;
     }
 
     void OnDestroy()
     {
         Manager_Spawner.OnPuzzleStatesRestored -= OnPuzzleStatesRestored;
-        Manager_Save.OnSave -= Save;
-        Manager_Save.OnLoad -= Load;
+    }
+
+    public void SaveData(GameData data)
+    {
+        data.StaffPickedUp = PlayerHasStaff;
+    }
+
+    public void LoadData(GameData data)
+    {
+        PlayerHasStaff = data.StaffPickedUp;
     }
 
     public static Transform FindTransformRecursively(Transform parent, string name)
@@ -85,7 +95,7 @@ public class Manager_Game : MonoBehaviour, SaveableData
             {
                 ChangeGameState(GameState.Puzzle);
                 Manager_Puzzle.Instance.Puzzle = _currentPuzzle;
-                Manager_Puzzle.Instance.LoadPuzzle(_currentPuzzle.PuzzleData.PuzzleObjectives.PuzzleDuration, _currentPuzzle.PuzzleData.PuzzleObjectives.PuzzleScore);
+                Manager_Puzzle.Instance.LoadPuzzle();
             }
             else
             {
@@ -110,6 +120,7 @@ public class Manager_Game : MonoBehaviour, SaveableData
         LastScene = SceneManager.GetActiveScene().name;
         SceneManager.LoadSceneAsync("Ursus_Cave");
         SceneManager.sceneLoaded += OnSceneLoaded;
+        PlayerHasStaff = false;
 
         void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
@@ -119,8 +130,9 @@ public class Manager_Game : MonoBehaviour, SaveableData
                 return;
             }
 
-            //Manager_Cutscene.Instance.PlayCutscene("Ursus_Cave_Intro");
-            ChangeGameState(GameState.Playing); // Remove when game is normal.
+            ChangeGameState(GameState.Playing);
+
+            StartCoroutine(Manager_Cutscene.Instance.PlayCutscene(GameObject.Find("Ursus_Cave_Intro").GetComponent<PlayableDirector>()));
 
             SceneManager.sceneLoaded -= OnSceneLoaded;
         }
@@ -187,13 +199,13 @@ public class Manager_Game : MonoBehaviour, SaveableData
         Gizmos.DrawWireSphere(Player.transform.position, InteractRange);
     }
 
-    public void Save()
+    public void PickUpStaff()
     {
-        //Manager_Save.SaveData.SaveManagerGame(this);
-    }
+        if (!PlayerHasStaff)
+        {
+            PlayerHasStaff = true;
 
-    public void Load()
-    {
-        //Manager_Save.SaveData.LoadManagerGame();
+            StartCoroutine(Player.PickUpStaffAction());
+        }
     }
 }
