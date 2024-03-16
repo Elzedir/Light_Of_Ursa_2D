@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -5,11 +6,17 @@ public class Menu_Main : MonoBehaviour
 {
     Menu_LoadGame _loadGamePanel;
 
+    void Start()
+    {
+        Manager_Game.FindTransformRecursively(transform, "ProfileText").GetComponent<TextMeshProUGUI>().text = Manager_Data.Instance.GetCurrentlySelectedProfile();
+    }
+
     public void Continue()
     {
         if (!Manager_Data.Instance.HasGameData()) { Debug.LogWarning("Manager_Data has no game data."); return; }
 
-        //Manager_Save.Instance.LoadGame();
+        Manager_Data.Instance.ChangeSelectedProfileId(Manager_Data.Instance.GetCurrentlySelectedProfile());
+        Manager_Game.Instance.LoadScene(Manager_Game.Instance.SceneName);
     }
 
     public void NewGame()
@@ -23,7 +30,7 @@ public class Menu_Main : MonoBehaviour
 
         Debug.Log("Load called");
 
-        _loadGamePanel.ActivateMenu();
+        _loadGamePanel.ActivateMenu(this);
     }
 
     public void Settings()

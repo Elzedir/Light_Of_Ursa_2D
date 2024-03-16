@@ -261,6 +261,7 @@ public class NodeArray
                 Nodes[row, column].RHS = Double.PositiveInfinity;
             }
         }
+
         return Nodes;
     }
 }

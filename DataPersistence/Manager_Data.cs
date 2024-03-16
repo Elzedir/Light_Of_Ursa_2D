@@ -13,8 +13,8 @@ public class Manager_Data : MonoBehaviour
     [Header("Debugging")]
     [SerializeField] bool _disableDataPersistence = false;
     [SerializeField] bool _createGameDataIfNull = false;
-    [SerializeField] bool _overrideSelectedProfileId = false;
-    [SerializeField] string _testSelectedProfileId = "test";
+    [SerializeField] bool _useTestProfileID = false;
+    [SerializeField] string _testSelectedProfileID = "test";
 
     [Header("File Storage Config")]
     [SerializeField] string _fileName;
@@ -28,7 +28,7 @@ public class Manager_Data : MonoBehaviour
     List<IDataPersistence> _dataPersistenceObjects;
     FileDataHandler _dataHandler;
 
-    string _selectedProfileId = "";
+    string _selectedProfileID = "";
 
     Coroutine _autoSaveCoroutine;
 
@@ -42,7 +42,7 @@ public class Manager_Data : MonoBehaviour
 
         _dataHandler = new FileDataHandler(Application.persistentDataPath, _fileName, _useEncryption);
 
-        _initializeSelectedProfileId();
+        _initializeSelectedProfileID();
     }
 
     void OnEnable()
@@ -69,26 +69,26 @@ public class Manager_Data : MonoBehaviour
         return new List<IDataPersistence>(FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None).OfType<IDataPersistence>());
     }
 
-    public void ChangeSelectedProfileId(string newProfileId)
+    public void ChangeSelectedProfileId(string newProfileID)
     {
-        _selectedProfileId = newProfileId;
+        _selectedProfileID = newProfileID;
         LoadGame();
     }
-    public void DeleteProfileData(string profileId)
+    public void DeleteProfileData(string profileID)
     {
-        _dataHandler.Delete(profileId);
-        _initializeSelectedProfileId();
+        _dataHandler.Delete(profileID);
+        _initializeSelectedProfileID();
         LoadGame();
     }
 
-    void _initializeSelectedProfileId()
+    void _initializeSelectedProfileID()
     {
-        _selectedProfileId = _dataHandler.GetMostRecentlyUpdatedProfileId();
+        _selectedProfileID = _dataHandler.GetMostRecentlyUpdatedProfileID();
 
-        if (!_overrideSelectedProfileId) return;
+        if (!_useTestProfileID) return;
 
-        _selectedProfileId = _testSelectedProfileId;
-        Debug.LogWarning("Overrode selected profile id with test id: " + _testSelectedProfileId);
+        _selectedProfileID = _testSelectedProfileID;
+        Debug.LogWarning("Overrode selected profile id with test id: " + _testSelectedProfileID);
     }
 
     public void NewGame()
@@ -106,14 +106,14 @@ public class Manager_Data : MonoBehaviour
 
         _gameData.LastUpdated = System.DateTime.Now.ToBinary();
 
-        _dataHandler.Save(_gameData, _selectedProfileId);
+        _dataHandler.Save(_gameData, _selectedProfileID);
     }
 
     public void LoadGame()
     {
         if (_disableDataPersistence) return;
         
-        _gameData = _dataHandler.Load(_selectedProfileId);
+        _gameData = _dataHandler.Load(_selectedProfileID);
 
         if (_gameData == null && _createGameDataIfNull) NewGame();
         
@@ -146,6 +146,11 @@ public class Manager_Data : MonoBehaviour
             if (_autoSaveEnabled) { SaveGame(); Debug.Log("Auto Saved Game"); }
         }
     }
+
+    public string GetCurrentlySelectedProfile()
+    {
+        return _selectedProfileID;
+    }
 }
 
 public interface IDataPersistence
@@ -171,8 +176,7 @@ public class FileDataHandler
 
     public GameData Load(string profileID, bool allowRestoreFromBackup = true)
     {
-        if (profileID == null ||
-            Manager_Game.Instance.CurrentState == GameState.MainMenu) return null;
+        if (profileID == null) return null;
 
         string fullPath = Path.Combine(_directoryPath, profileID, _fileName);
         GameData loadedData = null;
@@ -262,7 +266,7 @@ public class FileDataHandler
         }
         catch (Exception e)
         {
-            Debug.LogError($"Failed to delete profile data for profileId: {profileID} at path: {fullPath} \n {e}");
+            Debug.LogError($"Failed to delete profile data for profileID: {profileID} at path: {fullPath} \n {e}");
         }
     }
 
@@ -278,7 +282,7 @@ public class FileDataHandler
 
             if (!File.Exists(Path.Combine(_directoryPath, profileID, _fileName)))
             {
-                Debug.LogWarning($"Directory has no data: {profileID}");
+                if (profileID != "Unity") Debug.LogWarning($"Directory: {_directoryPath} has no data: {profileID} for file: {_fileName}");
                 continue;
             }
 
@@ -286,30 +290,30 @@ public class FileDataHandler
 
             if (profileData != null) profileDictionary.Add(profileID, profileData);
 
-            else Debug.LogError($"Tried to load profile but something went wrong with profile: {profileID}");
+            else Debug.LogError($"Profile data is null for profile: {profileID}");
         }
 
         return profileDictionary;
     }
 
-    public string GetMostRecentlyUpdatedProfileId()
+    public string GetMostRecentlyUpdatedProfileID()
     {
-        string mostRecentProfileId = null;
+        string mostRecentProfileID = null;
 
         Dictionary<string, GameData> profilesGameData = LoadAllProfiles();
 
         foreach (KeyValuePair<string, GameData> pair in profilesGameData)
         {
-            string profileId = pair.Key;
+            string profileID = pair.Key;
             GameData gameData = pair.Value;
 
             if (gameData == null) continue;
 
-            if (mostRecentProfileId != null) { if (DateTime.FromBinary(gameData.LastUpdated) > DateTime.FromBinary(profilesGameData[mostRecentProfileId].LastUpdated)) mostRecentProfileId = profileId; }
-            else mostRecentProfileId = profileId;
+            if (mostRecentProfileID != null) { if (DateTime.FromBinary(gameData.LastUpdated) > DateTime.FromBinary(profilesGameData[mostRecentProfileID].LastUpdated)) mostRecentProfileID = profileID; }
+            else mostRecentProfileID = profileID;
         }
 
-        return mostRecentProfileId;
+        return mostRecentProfileID;
     }
 
     private string EncryptDecrypt(string data)
@@ -378,19 +382,22 @@ public class SerializableDictionary<TKey, TValue> : Dictionary<TKey, TValue>, IS
 public class GameData
 {
     public long LastUpdated;
+    public string CurrentProfile;
+
+    public string SceneName;
+    public string LastScene;
     public Vector3 PlayerPosition;
     public bool StaffPickedUp;
 
-    // int QuestID, 
-
-    public SerializableDictionary<string, string> Quests;
-    public SerializableDictionary<string, string> Puzzles;
+    public SerializableDictionary<string, string> QuestSaveData;
+    public SerializableDictionary<string, string> PuzzleSaveData;
 
     public GameData()
     {
         PlayerPosition = Vector3.zero;
+        CurrentProfile = "None";
         StaffPickedUp = false;
-        Puzzles = new();
-        Quests = new();
+        PuzzleSaveData = new();
+        QuestSaveData = new();
     }
 }

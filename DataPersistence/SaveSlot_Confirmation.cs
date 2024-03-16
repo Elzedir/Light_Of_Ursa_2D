@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 
-public class SaveSlot_DeleteConfirmation : MonoBehaviour
+public class SaveSlot_Confirmation : MonoBehaviour
 {
     TextMeshProUGUI _displayText;
     Button _confirmButton;

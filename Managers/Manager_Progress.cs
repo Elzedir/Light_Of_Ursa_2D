@@ -52,13 +52,13 @@ public class Manager_Progress : MonoBehaviour, IDataPersistence
     {
         foreach (var quest in QuestList)
         {
-            data.Quests[quest.Key] = JsonConvert.SerializeObject(quest.Value.QuestSaveData);
+            data.QuestSaveData[quest.Key] = JsonConvert.SerializeObject(quest.Value.QuestSaveData);
         }
     }
 
     public void LoadData(GameData data)
     {
-        foreach (var quest in data.Quests)
+        foreach (var quest in data.QuestSaveData)
         {
             QuestList[quest.Key].LoadData(JsonConvert.DeserializeObject<QuestSaveData>(quest.Value));
         }

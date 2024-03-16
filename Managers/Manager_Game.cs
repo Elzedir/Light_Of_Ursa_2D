@@ -28,6 +28,7 @@ public class Manager_Game : MonoBehaviour, IDataPersistence
     [SerializeField] public float InteractRange { get; private set; } = 1;
 
     public string LastScene;
+    public string SceneName;
 
     Interactable_Puzzle _currentPuzzle;
 
@@ -51,12 +52,19 @@ public class Manager_Game : MonoBehaviour, IDataPersistence
 
     public void SaveData(GameData data)
     {
+        data.CurrentProfile = Manager_Data.Instance.GetCurrentlySelectedProfile();
+        data.SceneName = SceneManager.GetActiveScene().name;
         data.StaffPickedUp = PlayerHasStaff;
+        data.LastScene = LastScene;
     }
 
     public void LoadData(GameData data)
     {
         PlayerHasStaff = data.StaffPickedUp;
+        LastScene = data.LastScene;
+        if (SceneManager.GetActiveScene().name == "Main_Menu") SceneName = data.SceneName;
+        else SceneName = SceneManager.GetActiveScene().name;
+        _playerLastPosition = data.PlayerPosition;
     }
 
     public static Transform FindTransformRecursively(Transform parent, string name)
@@ -74,9 +82,11 @@ public class Manager_Game : MonoBehaviour, IDataPersistence
 
     public void LoadScene(string nextScene = null, Interactable_Puzzle puzzle = null)
     {
+        Manager_Data.Instance.SaveGame();
+
         string currentScene = SceneManager.GetActiveScene().name;
 
-        if (currentScene != "Puzzle") { LastScene = currentScene; Manager_Spawner.Instance.StorePuzzleStates(); }
+        if (currentScene != "Puzzle") LastScene = currentScene;
 
         if (nextScene == "Puzzle" && puzzle == null) { Debug.Log("Cannot load Puzzle Scene without a puzzle"); return; }
         if (nextScene == "Puzzle") { _playerLastPosition = Player.transform.position; _currentPuzzle = puzzle; }
@@ -89,22 +99,30 @@ public class Manager_Game : MonoBehaviour, IDataPersistence
 
         void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            if (scene.name != nextScene) { Debug.Log("Did not load the correct scene."); return; }
+            StartCoroutine(loadScene());
 
-            if (scene.name == "Puzzle")
+            IEnumerator loadScene()
             {
-                ChangeGameState(GameState.Puzzle);
-                Manager_Puzzle.Instance.Puzzle = _currentPuzzle;
-                Manager_Puzzle.Instance.LoadPuzzle();
-            }
-            else
-            {
-                ChangeGameState(GameState.Playing);
-                Player = FindFirstObjectByType<Player>();
-                Player.transform.position = currentScene == "Puzzle" ? _playerLastPosition : FindTransformRecursively(GameObject.Find("Spawners").transform, currentScene).position;
-            }
+                yield return null;
 
-            LastScene = currentScene;
+                if (scene.name != nextScene) { Debug.Log("Did not load the correct scene."); yield break; }
+
+                if (scene.name == "Puzzle")
+                {
+                    ChangeGameState(GameState.Puzzle);
+                    Manager_Puzzle.Instance.Puzzle = _currentPuzzle;
+                    Manager_Puzzle.Instance.LoadPuzzle();
+                }
+                else
+                {
+                    ChangeGameState(GameState.Playing);
+                    Player = FindFirstObjectByType<Player>();
+                    if (currentScene == "Main_Menu") Player.transform.position = _playerLastPosition;
+                    else Player.transform.position = currentScene == "Puzzle" ? _playerLastPosition : FindTransformRecursively(GameObject.Find("Spawners").transform, currentScene).position;
+                }
+
+                LastScene = currentScene;
+            }
 
             SceneManager.sceneLoaded -= OnSceneLoaded;
         }
@@ -207,5 +225,7 @@ public class Manager_Game : MonoBehaviour, IDataPersistence
 
             StartCoroutine(Player.PickUpStaffAction());
         }
+
+        Manager_Data.Instance.SaveGame();
     }
 }

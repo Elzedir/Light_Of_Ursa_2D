@@ -42,9 +42,7 @@ public class Manager_Grid : MonoBehaviour
         {
             for (int col = Walls.cellBounds.yMin; col < Walls.cellBounds.yMax; col++)
             {
-                TileBase tile = Walls.GetTile(new Vector3Int(row, col, 0));
-                
-                if (tile == null) continue;
+                if (Walls.GetTile(new Vector3Int(row, col, 0)) == null) continue;
 
                 Vector3Int nodePos = new Vector3Int(row + XOffset, col + YOffset, 0);
                 Pathfinder_Base.GetNodeAtPosition(nodePos.x, nodePos.y).UpdateMovementCost(Direction.None, double.PositiveInfinity);
