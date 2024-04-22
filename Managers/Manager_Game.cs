@@ -1,3 +1,4 @@
+using FMODUnity;
 using Newtonsoft.Json;
 using System;
 using System.Collections;
@@ -21,6 +22,14 @@ public class Manager_Game : MonoBehaviour, IDataPersistence
 {
     public static Manager_Game Instance;
 
+    Manager_Audio _manager_Audio;
+    public Manager_Audio Manager_Audio { get { return _getManager_Audio(); } private set { _manager_Audio = value; } }
+    Manager_Audio _getManager_Audio() { if (_manager_Audio) return _manager_Audio; else return GameObject.Find("Main Camera").GetComponentInChildren<Manager_Audio>(); }
+
+    Window_Text _window_Text;
+    public Window_Text Window_Text { get { return _getWindow_Text(); } private set { _window_Text = value; } }
+    Window_Text _getWindow_Text() { if (_window_Text) return _window_Text; else return FindTransformRecursively(GameObject.Find("Canvas").transform, "Window_Text").GetComponentInChildren<Window_Text>(); }
+    
     [SerializeField] public GameState CurrentState;
 
     public Player Player;
@@ -150,7 +159,18 @@ public class Manager_Game : MonoBehaviour, IDataPersistence
 
             ChangeGameState(GameState.Playing);
 
-            StartCoroutine(Manager_Cutscene.Instance.PlayCutscene(GameObject.Find("Ursus_Cave_Intro").GetComponent<PlayableDirector>()));
+            StartCoroutine(StartSequence());
+
+            IEnumerator StartSequence()
+            {
+                Manager_Audio.PlaySong(RuntimeManager.PathToEventReference("event:/Test_03"));
+                Manager_Audio.LocalParameters[3].SetValue(1);
+                Manager_Audio.LocalParameters[0].SetValue(0.6f);
+                Manager_Audio.LocalParameters[2].SetValue(1);
+
+                yield return StartCoroutine(Manager_Cutscene.Instance.PlayCutscene(GameObject.Find("Ursus_Cave_Intro").GetComponent<PlayableDirector>()));
+                yield return StartCoroutine(Window_Text.UpdateText("Chapter 1: Water"));
+            }
 
             SceneManager.sceneLoaded -= OnSceneLoaded;
         }

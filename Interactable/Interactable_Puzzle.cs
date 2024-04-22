@@ -72,15 +72,21 @@ public class PuzzleDataEditor : Editor
 
         if (_puzzleSet.enumValueIndex != (int)PuzzleSet.None)
         {
-            SerializedProperty iceWallTypes = serializedObject.FindProperty("IceWallTypes");
-            EditorGUILayout.PropertyField(iceWallTypes, true);
-
-            if (iceWallTypes.isArray && iceWallTypes.arraySize > 0)
+            if (_puzzleSet.enumValueIndex == (int)PuzzleSet.IceWall)
             {
-                EditorGUILayout.PropertyField(_puzzleData.FindPropertyRelative("PuzzleObjectives"), true);
-                EditorGUILayout.PropertyField(_puzzleData.FindPropertyRelative("PuzzleState"), true);
-                EditorGUILayout.PropertyField(_puzzleData.FindPropertyRelative("IceWallData"), true);
+                SerializedProperty iceWallTypes = serializedObject.FindProperty("IceWallTypes");
+                EditorGUILayout.PropertyField(iceWallTypes, true);
+
+                if (iceWallTypes.isArray && iceWallTypes.arraySize > 0)
+                {
+                    
+                    EditorGUILayout.PropertyField(_puzzleData.FindPropertyRelative("IceWallData"), true);
+                }
             }
+
+            // When puzzle stlye is selected, then you show these.
+            EditorGUILayout.PropertyField(_puzzleData.FindPropertyRelative("PuzzleObjectives"), true);
+            EditorGUILayout.PropertyField(_puzzleData.FindPropertyRelative("PuzzleState"), true);
         }
 
         serializedObject.ApplyModifiedProperties();

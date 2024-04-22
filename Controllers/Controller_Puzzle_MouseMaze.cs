@@ -9,7 +9,7 @@ public class Controller_Puzzle_MouseMaze : Controller
 {
     public event Action OnBreakWall;
     public MouseMazeColour PlayerColour { get; private set; }
-    float _playerSpeed = 2;
+    float _playerSpeed = 1;
     void Start()
     {
         KeyBindings.ContinuousPressKeyActions.Remove(ActionKey.Space);

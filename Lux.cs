@@ -27,10 +27,10 @@ public class Lux : Controller_Agent
     {
         base.Update();
 
-        Flicker();
+        _flicker();
     }
 
-    void Flicker()
+    void _flicker()
     {
         timer += Time.deltaTime;
 
@@ -54,6 +54,6 @@ public class Lux : Controller_Agent
 
     void WanderAroundUrsus()
     {
-        
+        SetAgentDetails(targetGO: Manager_Game.Instance.Player.gameObject);
     }
 }

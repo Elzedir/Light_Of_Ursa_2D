@@ -21,6 +21,8 @@ public class Menu_Main : MonoBehaviour
 
     public void NewGame()
     {
+
+        Manager_Data.Instance.NewGame();
         Manager_Game.Instance.StartNewGame();
     }
 

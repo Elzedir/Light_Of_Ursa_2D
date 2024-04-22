@@ -12,12 +12,6 @@ public class Manager_Audio : MonoBehaviour
     [SerializeField] public List<LocalParameter> LocalParameters;
     [SerializeField] public List<GlobalParameter> GlobalParameters;
 
-    private void Start()
-    {
-        _currentSongReference = RuntimeManager.PathToEventReference("event:/Test_01");
-        PlaySong(_currentSongReference);
-    }
-
     public void PlaySong(FMODUnity.EventReference audio)
     {
         _currentSongReference = audio;
@@ -73,7 +67,7 @@ public class LocalParameter
     [field: SerializeField] [field: Range(0, 1)] public float Value { get; private set; }
     Manager_Audio _manager;
 
-    public void SetValue(int value)
+    public void SetValue(float value)
     {
         Value = value;
         _manager.UpdateLocalParameter(this);

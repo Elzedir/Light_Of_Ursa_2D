@@ -94,15 +94,13 @@ public class Manager_Spawner : MonoBehaviour, IDataPersistence
 
         if (PuzzleSpawner == null) return;
 
-        Manager_Audio managerAudio = GameObject.Find("Manager_Audio").GetComponent<Manager_Audio>();
-
         int i = 0;
 
         foreach (Transform child in PuzzleSpawner.transform)
         {
             if (child.GetComponent<Interactable_Puzzle>().PuzzleData.PuzzleState.PuzzleCompleted)
             {
-                managerAudio.LocalParameters[i].SetValue(1);
+                Manager_Game.Instance.Manager_Audio.LocalParameters[i].SetValue(1);
             }
 
             i++;

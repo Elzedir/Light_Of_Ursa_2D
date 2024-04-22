@@ -74,7 +74,7 @@ public class Manager_Cutscene : MonoBehaviour
             "Old_Tree",
             new List<Cutscene>
             {
-                new Cutscene("Old_Tree_Intro", "Old_Tree")
+                new Cutscene("Old_Tree_Intro", "Old_Tree", "Chapter 1: Finding Ursus")
             }
             );
     }
@@ -86,12 +86,14 @@ public class Cutscene
     public bool HasBeenPlayed { get; private set; }
     public string Name { get; private set; }
     public string LevelName { get; private set; }
+    public string DisplayText { get; private set; }
 
-    public Cutscene(string name, string levelName)
+    public Cutscene(string name, string levelName, string displayText)
     {
         HasBeenPlayed = false;
         Name = name;
         LevelName = levelName;
+        DisplayText = displayText;
     }
 
     public void SetDirector(PlayableDirector director)

@@ -11,7 +11,7 @@ public class Pathfinder_Base
     PuzzleSet _puzzleSet;
 
     #region Initialisation
-    public void RunPathfinderOpen(Coordinates start, Coordinates target, PathfinderMover mover)
+    public void RunPathfinderOpenWorld(Coordinates start, Coordinates target, PathfinderMover mover)
     {
         RunPathfinder(Manager_Grid.Rows, Manager_Grid.Columns, new Coordinates(start.X + Manager_Grid.XOffset, start.Y + Manager_Grid.YOffset), new Coordinates(target.X + Manager_Grid.XOffset, target.Y + Manager_Grid.YOffset), mover, PuzzleSet.None);
     }

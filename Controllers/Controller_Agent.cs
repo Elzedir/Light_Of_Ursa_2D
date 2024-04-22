@@ -45,7 +45,7 @@ public class Controller_Agent : MonoBehaviour, PathfinderMover
         this.enabled = toggle;
     }
 
-    public void SetAgentDetails(Vector3? targetPosition = null, GameObject targetGO = null, float speed = 1, float followDistance = 0, WanderData wanderData = null)
+    public void SetAgentDetails(Vector3? targetPosition = null, GameObject targetGO = null, float speed = 1, float followDistance = 0.5f, WanderData wanderData = null)
     {
         _targetPosition = targetPosition ?? transform.position;
         _targetGO = targetGO;
@@ -61,12 +61,14 @@ public class Controller_Agent : MonoBehaviour, PathfinderMover
 
         _pathfinderCooldown -= Time.deltaTime;
 
+        if (_targetGO != null) _targetPosition = _targetGO.transform.position;
+
         if (_pathfinderCooldown <= 0)
         {
             if (_targetPosition != Vector3.zero && Vector2.Distance(transform.localPosition, _targetPosition) > 0.9f)
             {
                 Debug.Log("Moving");
-                Pathfinder.RunPathfinderOpen(new Coordinates((int)transform.localPosition.x, (int)transform.localPosition.y), new Coordinates((int)_targetPosition.x, (int)_targetPosition.y), this); 
+                Pathfinder.RunPathfinderOpenWorld(new Coordinates((int)transform.localPosition.x, (int)transform.localPosition.y), new Coordinates((int)_targetPosition.x, (int)_targetPosition.y), this); 
                 _pathfinderCooldown = 1.0f;
             }
         }
