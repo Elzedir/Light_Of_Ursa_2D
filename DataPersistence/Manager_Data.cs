@@ -74,9 +74,9 @@ public class Manager_Data : MonoBehaviour
         LoadGame();
     }
 
-    public void DeleteProfileData(string profileID)
+    public void DeleteProfileData(Profile profileID)
     {
-        _activeProfile.Delete(profileID);
+        profileID.DeleteProfile();
         _initializeProfiles();
         LoadGame();
     }
@@ -365,21 +365,35 @@ public class Profile
         }
     }
 
-    public void Delete(string profileID)
+    public void DeleteProfile()
     {
-        if (profileID == null) return;
-
-        string fullPath = Path.Combine(Application.persistentDataPath, profileID, Manager_Data.SaveFileName);
+        string fullPath = Path.Combine(Application.persistentDataPath, Name);
 
         try
         {
-            if (File.Exists(fullPath)) Directory.Delete(Path.GetDirectoryName(fullPath), true);
+            if (Directory.Exists(fullPath)) Directory.Delete(Path.GetDirectoryName(fullPath), true);
 
             else Debug.LogWarning($"Tried to delete profile data, but data was not found: {fullPath}");
         }
         catch (Exception e)
         {
-            Debug.LogError($"Failed to delete profile data for profileID: {profileID} at path: {fullPath} \n {e}");
+            Debug.LogError($"Failed to delete profile data for profileID: {Name} at path: {fullPath} \n {e}");
+        }
+    }
+
+    public void DeleteSave(string saveGameName)
+    {
+        string fullPath = Path.Combine(Application.persistentDataPath, Name, saveGameName);
+
+        try
+        {
+            if (Directory.Exists(fullPath)) Directory.Delete(fullPath, true);
+
+            else Debug.LogWarning($"Tried to delete profile data, but data was not found: {fullPath}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to delete profile data for profileID: {Name} at path: {fullPath} \n {e}");
         }
     }
 

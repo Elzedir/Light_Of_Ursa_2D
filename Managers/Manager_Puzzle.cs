@@ -84,7 +84,7 @@ public class Manager_Puzzle : MonoBehaviour
                 return;
         }
 
-        Manager_Game.FindTransformRecursively(GameObject.Find("Canvas").transform, "Puzzle_Information").gameObject.SetActive(setActive);
+        Manager_Game.FindTransformRecursively(GameObject.Find("UI").transform, "Puzzle_Information").gameObject.SetActive(setActive);
     }
 
     void Update()

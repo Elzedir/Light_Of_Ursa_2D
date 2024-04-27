@@ -40,7 +40,7 @@ public class Manager_Dialogue : MonoBehaviour
     void FindDialogueWindow()
     {
         _window_Dialogue = 
-            Manager_Game.FindTransformRecursively(GameObject.Find("Canvas").transform, "Window_Dialogue").TryGetComponent<Window_Dialogue>(out Window_Dialogue windowDialogue) == true 
+            Manager_Game.FindTransformRecursively(GameObject.Find("UI").transform, "Window_Dialogue").TryGetComponent<Window_Dialogue>(out Window_Dialogue windowDialogue) == true 
             ? windowDialogue 
             : null;
     }

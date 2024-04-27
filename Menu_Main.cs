@@ -93,8 +93,6 @@ public class Menu_Main : MonoBehaviour
     {
         string profileName = Manager_Game.FindTransformRecursively(transform.parent, "InputField").gameObject.GetComponent<InputField>().text;
 
-        Debug.Log(profileName);
-
         if (profileName == "") { OpenWarningPopup("Profile name is empty."); return; }
 
         IEnumerable<DirectoryInfo> directoryInfoList = new DirectoryInfo(Application.persistentDataPath).EnumerateDirectories();
@@ -106,15 +104,9 @@ public class Menu_Main : MonoBehaviour
 
         Manager_Game.FindTransformRecursively(transform.parent, "CreateNewProfilePanel").gameObject.SetActive(false);
 
-        Debug.Log(Application.persistentDataPath);
-        Debug.Log(Manager_Data.SaveFileName);
-        Debug.Log(Manager_Data.Instance._useEncryption);
-
         Profile newProfile = new Profile(profileName, 0, null, Manager_Data.Instance._useEncryption);
 
-        Debug.Log(newProfile);
-
-        newProfile.Save("", new GameData(profileName), profileName, true);
+        newProfile.Save("TheExister", new GameData(profileName), profileName, true);
 
         CloseSwitchProfile();
         OpenSwitchProfilePanel();

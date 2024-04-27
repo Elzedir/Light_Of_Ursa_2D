@@ -61,7 +61,7 @@ public class Menu_LoadGame : Menu_Base
         Manager_Game.FindTransformRecursively(transform.parent, "ConfirmationPanel").GetComponent<SaveSlot_Confirmation>().ActivateMenu(
                 "Are you sure you want to clear this data?",
                 () => {
-                    Manager_Data.Instance.DeleteProfileData(saveSlot.GetProfileID());
+                    Manager_Data.Instance.GetActiveProfile().DeleteSave(saveSlot.GetProfileID());
                     ActivateMenu(_menuMain);
                 },
                 () => {
@@ -90,6 +90,8 @@ public class Menu_LoadGame : Menu_Base
 
         foreach (var saveGame in Manager_Data.Instance.GetAllSavedGames(Manager_Data.Instance.GetActiveProfile()))
         {
+            if (saveGame.Key == "TheExister") continue;
+
             _saveSlots.Add(_createSaveSlot(saveGame.Key, saveGame.Value));
         }
     }

@@ -28,7 +28,7 @@ public class Manager_Game : MonoBehaviour, IDataPersistence
 
     Window_Text _window_Text;
     public Window_Text Window_Text { get { return _getWindow_Text(); } private set { _window_Text = value; } }
-    Window_Text _getWindow_Text() { if (_window_Text) return _window_Text; else return FindTransformRecursively(GameObject.Find("Canvas").transform, "Window_Text").GetComponentInChildren<Window_Text>(); }
+    Window_Text _getWindow_Text() { if (_window_Text) return _window_Text; else return FindTransformRecursively(GameObject.Find("UI").transform, "Window_Text").GetComponentInChildren<Window_Text>(); }
     
     [SerializeField] public GameState CurrentState;
 
