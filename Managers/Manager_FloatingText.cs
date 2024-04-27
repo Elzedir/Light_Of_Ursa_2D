@@ -14,12 +14,12 @@ public class Manager_FloatingText : MonoBehaviour
 
     void Awake()
     {
-        if (Instance == null) { Instance = this; DontDestroyOnLoad(gameObject); } else if (Instance != this) Destroy(gameObject);
+        Instance = this;
     }
 
-    void Start()
+    public void OnSceneLoaded()
     {
-        
+
     }
 
     public void ShowFloatingText(string text, int fontSize, Color color, bool fixedTextPosition, Vector3 position, Vector3 moveDirection, float duration)

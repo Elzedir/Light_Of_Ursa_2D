@@ -39,6 +39,8 @@ public class Manager_Game : MonoBehaviour, IDataPersistence
     public string LastScene;
     public string SceneName;
 
+    public string MostRecentlyUpdatedProfile;
+
     Interactable_Puzzle _currentPuzzle;
 
     [field: SerializeField] public bool PlayerHasStaff { get; private set; }
@@ -52,6 +54,33 @@ public class Manager_Game : MonoBehaviour, IDataPersistence
         if(SceneManager.GetActiveScene().name == "Main_Menu") CurrentState = GameState.MainMenu;
 
         Manager_Spawner.OnPuzzleStatesRestored += OnPuzzleStatesRestored;
+
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    public void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        _createManagers();
+    }
+
+    void _createManagers()
+    {
+        if (SceneManager.GetActiveScene().name == "Main_Menu") return;
+
+        Transform manager_Parent =  new GameObject("Manager_Parent").transform;
+
+        _createManager("Manager_Dialogue", manager_Parent).AddComponent<Manager_Dialogue>().OnSceneLoaded();
+        _createManager("Manager_FloatingText", manager_Parent).AddComponent<Manager_FloatingText>().OnSceneLoaded();
+        _createManager("Manager_Cutscene", manager_Parent).AddComponent<Manager_Cutscene>().OnSceneLoaded();
+        _createManager("Manager_Spawner", manager_Parent).AddComponent<Manager_Spawner>().OnSceneLoaded();
+        _createManager("Manager_Progress", manager_Parent).AddComponent<Manager_Progress>().OnSceneLoaded();
+
+        GameObject _createManager(string name, Transform parent)
+        {
+            GameObject manager = new GameObject(name);
+            manager.transform.parent = parent;
+            return manager;
+        }
     }
 
     void OnDestroy()
@@ -61,7 +90,7 @@ public class Manager_Game : MonoBehaviour, IDataPersistence
 
     public void SaveData(GameData data)
     {
-        data.CurrentProfile = Manager_Data.Instance.GetCurrentlySelectedProfile();
+        data.CurrentProfileName = Manager_Data.Instance.GetActiveProfile().Name;
         data.SceneName = SceneManager.GetActiveScene().name;
         data.StaffPickedUp = PlayerHasStaff;
         data.LastScene = LastScene;
@@ -245,7 +274,5 @@ public class Manager_Game : MonoBehaviour, IDataPersistence
 
             StartCoroutine(Player.PickUpStaffAction());
         }
-
-        Manager_Data.Instance.SaveGame();
     }
 }

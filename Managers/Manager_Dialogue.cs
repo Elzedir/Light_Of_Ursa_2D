@@ -27,19 +27,14 @@ public class Manager_Dialogue : MonoBehaviour
 
     void Awake()
     {
-        if (Instance == null) { Instance = this; DontDestroyOnLoad(gameObject); SceneManager.sceneLoaded += OnSceneLoaded; } else if (Instance != this) Destroy(gameObject);
+        Instance = this;
     }
 
-    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    public void OnSceneLoaded()
     {
         if (SceneManager.GetActiveScene().name == "Main_Menu") return;
         FindDialogueWindow();
         InitialiseDialogue();
-    }
-
-    void OnDestroy()
-    {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
     void FindDialogueWindow()

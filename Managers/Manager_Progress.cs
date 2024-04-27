@@ -14,8 +14,13 @@ public class Manager_Progress : MonoBehaviour, IDataPersistence
 
     void Awake()
     {
-        if (Instance == null) { Instance = this; DontDestroyOnLoad(gameObject); } else if (Instance != this) Destroy(gameObject);
+        Instance = this;
         if (!_initialised) _initialise();
+    }
+
+    public void OnSceneLoaded()
+    {
+
     }
 
     void _initialise()

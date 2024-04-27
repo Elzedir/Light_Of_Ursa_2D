@@ -16,7 +16,12 @@ public class Manager_Spawner : MonoBehaviour, IDataPersistence
 
     void Awake()
     {
-        if (Instance == null) { Instance = this; DontDestroyOnLoad(gameObject); } else if (Instance != this) Destroy(gameObject);
+        Instance = this;
+    }
+
+    public void OnSceneLoaded()
+    {
+
     }
 
     void Update()

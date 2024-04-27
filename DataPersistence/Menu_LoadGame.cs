@@ -18,7 +18,7 @@ public class Menu_LoadGame : Menu_Base
                 "Starting a New Game with this slot will override the currently saved data. Are you sure?",
                 () => {
                     Manager_Data.Instance.ChangeSelectedProfileId(saveSlot.GetProfileID());
-                    Manager_Data.Instance.NewGame();
+                    Manager_Data.Instance.NewGame(saveSlot.GetProfileID());
                     _saveGameAndLoadNewGame();
                 },
                 () => {
@@ -29,7 +29,7 @@ public class Menu_LoadGame : Menu_Base
         else
         {
             Manager_Data.Instance.ChangeSelectedProfileId(saveSlot.GetProfileID());
-            Manager_Data.Instance.NewGame();
+            Manager_Data.Instance.NewGame(saveSlot.GetProfileID());
             _saveGameAndLoadNewGame();
         }
     }
@@ -41,7 +41,6 @@ public class Menu_LoadGame : Menu_Base
             Manager_Game.FindTransformRecursively(transform.parent, "ConfirmationPanel").GetComponent<SaveSlot_Confirmation>().ActivateMenu(
                 "Would you like to load this game?",
                 () => {
-                    Manager_Data.Instance.ChangeSelectedProfileId(saveSlot.GetProfileID());
                     Manager_Game.Instance.LoadScene(Manager_Game.Instance.SceneName);
                 },
                 () => {
@@ -52,7 +51,7 @@ public class Menu_LoadGame : Menu_Base
         else
         {
             Manager_Data.Instance.ChangeSelectedProfileId(saveSlot.GetProfileID());
-            Manager_Data.Instance.NewGame();
+            Manager_Data.Instance.NewGame(saveSlot.GetProfileID());
             _saveGameAndLoadNewGame();
         }
     }
@@ -89,12 +88,10 @@ public class Menu_LoadGame : Menu_Base
         if (!_saveSlotParent) _saveSlotParent = Manager_Game.FindTransformRecursively(transform, "SavedGamesParent");
         if (!_saveSlot) _saveSlot = Manager_Game.FindTransformRecursively(transform, "SaveSlot").GetComponent<SaveSlot>();
 
-        foreach (var saveGame in Manager_Data.Instance.GetAllProfilesGameData())
+        foreach (var saveGame in Manager_Data.Instance.GetAllSavedGames(Manager_Data.Instance.GetActiveProfile()))
         {
             _saveSlots.Add(_createSaveSlot(saveGame.Key, saveGame.Value));
         }
-
-        _saveSlots.Add(_createSaveSlot("New Game", null));
     }
 
     SaveSlot _createSaveSlot(string profileID, GameData gameData)

@@ -6,29 +6,30 @@ using System.Linq;
 using System.IO;
 using UnityEngine.SceneManagement;
 using UnityEngine.Profiling;
+using NUnit.Framework;
 
 public class Manager_Data : MonoBehaviour
 {
-
     [Header("Debugging")]
     [SerializeField] bool _disableDataPersistence = false;
     [SerializeField] bool _createGameDataIfNull = false;
     [SerializeField] bool _useTestProfileID = false;
-    [SerializeField] string _testSelectedProfileID = "test";
+    [SerializeField] string _testSelectedProfileName = "test";
+
+    public static string SaveFileName { get; private set; } = "Data.LightOfUrsus";
 
     [Header("File Storage Config")]
-    [SerializeField] string _fileName;
-    [SerializeField] bool _useEncryption;
+    [SerializeField] public bool _useEncryption;
 
     [Header("Auto Saving Configuration")]
     [SerializeField] bool _autoSaveEnabled = false;
     [SerializeField] float _autoSaveTimeSeconds = 60f;
+    [SerializeField] int _numberOfAutoSaves = 5;
 
     GameData _gameData;
     List<IDataPersistence> _dataPersistenceObjects;
-    FileDataHandler _dataHandler;
-
-    string _selectedProfileID = "";
+    Profile _activeProfile;
+    public List<Profile> AllProfiles;
 
     Coroutine _autoSaveCoroutine;
 
@@ -40,9 +41,7 @@ public class Manager_Data : MonoBehaviour
 
         if (_disableDataPersistence) Debug.LogWarning("Data Persistence is currently disabled!");
 
-        _dataHandler = new FileDataHandler(Application.persistentDataPath, _fileName, _useEncryption);
-
-        _initializeSelectedProfileID();
+        _activeProfile = _initializeProfiles();
     }
 
     void OnEnable()
@@ -69,54 +68,53 @@ public class Manager_Data : MonoBehaviour
         return new List<IDataPersistence>(FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None).OfType<IDataPersistence>());
     }
 
-    public void ChangeSelectedProfileId(string newProfileID)
+    public void ChangeSelectedProfileId(string newProfile)
     {
-        _selectedProfileID = newProfileID;
+        _activeProfile = CreateProfile(newProfile);
         LoadGame();
     }
+
     public void DeleteProfileData(string profileID)
     {
-        _dataHandler.Delete(profileID);
-        _initializeSelectedProfileID();
+        _activeProfile.Delete(profileID);
+        _initializeProfiles();
         LoadGame();
     }
 
-    void _initializeSelectedProfileID()
+    Profile _initializeProfiles()
     {
-        _selectedProfileID = _dataHandler.GetMostRecentlyUpdatedProfileID();
+        if (!_useTestProfileID) return GetMostRecentlyUpdatedProfileID();
 
-        if (!_useTestProfileID) return;
-
-        _selectedProfileID = _testSelectedProfileID;
-        Debug.LogWarning("Overrode selected profile id with test id: " + _testSelectedProfileID);
+        Debug.LogWarning("Overrode selected profile id with test id: " + _testSelectedProfileName);
+        return new Profile(_testSelectedProfileName, 0, null, Manager_Data.Instance._useEncryption);
     }
 
-    public void NewGame()
+    public void NewGame(string profile)
     {
-        _gameData = new GameData();
+        _gameData = new GameData(profile);
     }
 
-    public void SaveGame()
+    public void SaveGame(string saveGameName = "")
     {
         if (_disableDataPersistence) return;
-        
+
         if (_gameData == null) { Debug.LogWarning("No data was found. A New Game needs to be started before data can be saved."); return; }
 
         foreach (IDataPersistence data in _dataPersistenceObjects) data.SaveData(_gameData);
 
         _gameData.LastUpdated = System.DateTime.Now.ToBinary();
 
-        _dataHandler.Save(_gameData, _selectedProfileID);
+        _activeProfile.Save(saveGameName, _gameData, _activeProfile.Name);
     }
 
     public void LoadGame()
     {
-        if (_disableDataPersistence) return;
-        
-        _gameData = _dataHandler.Load(_selectedProfileID);
+        if (_disableDataPersistence || _activeProfile.Name == "Create New Profile") return;
 
-        if (_gameData == null && _createGameDataIfNull) NewGame();
-        
+        _gameData = _activeProfile.Load(GetLatestSave(_activeProfile.Name), _activeProfile.Name);
+
+        if (_gameData == null && _createGameDataIfNull) NewGame(_activeProfile.Name);
+
         if (_gameData == null) { Debug.Log("No data was found. A New Game needs to be started before data can be loaded."); return; }
 
         foreach (IDataPersistence data in _dataPersistenceObjects) data.LoadData(_gameData);
@@ -125,7 +123,7 @@ public class Manager_Data : MonoBehaviour
     void OnApplicationQuit()
     {
         Debug.Log("Data Saved");
-        SaveGame();
+        SaveGame("ExitSave");
     }
 
     public bool HasGameData()
@@ -133,9 +131,28 @@ public class Manager_Data : MonoBehaviour
         return _gameData != null;
     }
 
-    public Dictionary<string, GameData> GetAllProfilesGameData()
+    public List<Profile> GetAllProfiles()
     {
-        return _dataHandler.LoadAllProfiles();
+        List<Profile> profiles = new();
+
+        foreach (var profile in LoadAllProfiles())
+        {
+            profiles.Add(profile.Key);
+        }
+
+        return profiles;
+    }
+
+    public Dictionary<string, GameData> GetAllSavedGames(Profile profile)
+    {
+        Dictionary<string, GameData> savedGames = new();
+
+        foreach (string saveGame in profile.SavedGames)
+        {
+            savedGames.Add(saveGame, profile.Load(saveGame, profile.Name));
+        }
+
+        return savedGames;
     }
 
     IEnumerator _autoSave()
@@ -143,13 +160,107 @@ public class Manager_Data : MonoBehaviour
         while (true)
         {
             yield return new WaitForSeconds(_autoSaveTimeSeconds);
-            if (_autoSaveEnabled) { SaveGame(); Debug.Log("Auto Saved Game"); }
+
+            if (_autoSaveEnabled)
+            {
+                SaveGame($"AutoSave_{_activeProfile.AutoSaveCounter}");
+                _activeProfile.AutoSaveCounter++;
+                if (_activeProfile.AutoSaveCounter > _numberOfAutoSaves) _activeProfile.AutoSaveCounter = 1;
+                Debug.Log("Auto Saved Game");
+            }
         }
     }
 
-    public string GetCurrentlySelectedProfile()
+    public Profile GetActiveProfile()
     {
-        return _selectedProfileID;
+        return _activeProfile;
+    }
+
+    public Profile CreateProfile(string profile)
+    {
+        IEnumerable saveGameDirectories = new DirectoryInfo(Path.Combine(Application.persistentDataPath, profile)).EnumerateDirectories();
+
+        int autoSaveCounter = 0;
+        List<string> saveGames = new();
+
+        foreach (DirectoryInfo saveGame in saveGameDirectories)
+        {
+            if (saveGame.Name.Contains("AutoSave"))
+            {
+                autoSaveCounter++;
+                saveGames.Add(saveGame.Name);
+            }
+            else
+            {
+                saveGames.Add(saveGame.Name);
+            }
+        }
+
+        return new Profile(
+            profile,
+            autoSaveCounter,
+            saveGames,
+            Manager_Data.Instance._useEncryption
+            );
+    }
+
+    public Profile GetMostRecentlyUpdatedProfileID()
+    {
+        Profile mostRecentProfile = null;
+
+        Dictionary<Profile, GameData> profilesGameData = LoadAllProfiles();
+
+        foreach (KeyValuePair<Profile, GameData> pair in profilesGameData)
+        {
+            Profile profile = pair.Key;
+            GameData gameData = pair.Value;
+
+            if (gameData == null) continue;
+
+            if (mostRecentProfile != null) { if (DateTime.FromBinary(gameData.LastUpdated) > DateTime.FromBinary(profilesGameData[mostRecentProfile].LastUpdated)) mostRecentProfile = profile; }
+            else mostRecentProfile = profile;
+        }
+
+        if (mostRecentProfile == null) return new Profile("Create New Profile", 0, null, Manager_Data.Instance._useEncryption);
+
+        return mostRecentProfile;
+    }
+
+    public Dictionary<Profile, GameData> LoadAllProfiles()
+    {
+        Dictionary<Profile, GameData> profileDictionary = new();
+
+        IEnumerable<DirectoryInfo> directoryInfoList = new DirectoryInfo(Application.persistentDataPath).EnumerateDirectories();
+
+        foreach (DirectoryInfo directoryInfo in directoryInfoList)
+        {
+            if (directoryInfo.Name == "Unity") continue;
+               
+            Profile newProfile = Manager_Data.Instance.CreateProfile(directoryInfo.Name);
+
+            GameData profileData = newProfile.Load(GetLatestSave(directoryInfo.Name), directoryInfo.Name);
+
+            if (profileData != null) profileDictionary.Add(newProfile, profileData);
+
+            else Debug.LogError($"Profile data is null for profile: {directoryInfo.Name}");
+        }
+
+        return profileDictionary;
+    }
+
+    public string GetLatestSave(string profile)
+    {
+        IEnumerable saveGameDirectories = new DirectoryInfo(Path.Combine(Application.persistentDataPath, profile)).EnumerateDirectories();
+
+        DateTime lastSaved = DateTime.MinValue;
+        string saveGameName = null;
+
+        foreach (DirectoryInfo directoryInfo in saveGameDirectories)
+        {
+            if (directoryInfo.LastWriteTime > lastSaved) { lastSaved = directoryInfo.LastWriteTime; saveGameName = directoryInfo.Name; }
+        }
+
+        return saveGameName;
     }
 }
 
@@ -159,26 +270,29 @@ public interface IDataPersistence
     void LoadData(GameData data);
 }
 
-public class FileDataHandler
+public class Profile
 {
-    string _directoryPath = "";
-    string _fileName = "";
+    public string Name;
+    public List<string> SavedGames;
     bool _useEncryption = false;
+    public int AutoSaveCounter;
     readonly string _encryptionCodeWord = "word";
     readonly string _backupExtension = ".bak";
 
-    public FileDataHandler(string directoryPath, string fileName, bool useEncryption)
+    public Profile(string name, int autoSaveCounter, List<string> savedGames, bool useEncryption)
     {
-        _directoryPath = directoryPath;
-        _fileName = fileName;
+        Name = name;
+        AutoSaveCounter = autoSaveCounter;
+        if (savedGames != null) SavedGames = new(savedGames);
+        else SavedGames = new();
         _useEncryption = useEncryption;
     }
 
-    public GameData Load(string profileID, bool allowRestoreFromBackup = true)
+    public GameData Load(string savedGame, string profileID, bool allowRestoreFromBackup = true)
     {
         if (profileID == null) return null;
 
-        string fullPath = Path.Combine(_directoryPath, profileID, _fileName);
+        string fullPath = Path.Combine(Application.persistentDataPath, profileID, savedGame, Manager_Data.SaveFileName);
         GameData loadedData = null;
 
         if (File.Exists(fullPath))
@@ -195,7 +309,7 @@ public class FileDataHandler
                     }
                 }
 
-                if (_useEncryption) dataToLoad = EncryptDecrypt(dataToLoad);
+                if (_useEncryption) dataToLoad = _encryptDecrypt(dataToLoad);
 
                 loadedData = JsonUtility.FromJson<GameData>(dataToLoad);
             }
@@ -205,7 +319,7 @@ public class FileDataHandler
                 {
                     Debug.LogWarning("Failed to load data file. Attempting to roll back.\n" + e);
 
-                    if (AttemptRollback(fullPath)) loadedData = Load(profileID, false);
+                    if (_attemptRollback(fullPath)) loadedData = Load(savedGame, profileID, false);
                 }
                 else
                 {
@@ -217,13 +331,12 @@ public class FileDataHandler
         return loadedData;
     }
 
-    public void Save(GameData data, string profileID)
+    public void Save(string savedGame, GameData data, string profileID, bool profileSave = false)
     {
-        if (profileID == null || 
-            Manager_Game.Instance.CurrentState == GameState.MainMenu // NB Have to include Dead, Puzzle, etc. All the states
-            ) return;
-        
-        string fullPath = Path.Combine(_directoryPath, profileID, _fileName);
+        if (profileID == null || SceneManager.GetActiveScene().name == "Main_Menu" && !profileSave) return;
+        if (savedGame == "") { savedGame = $"NewSave_{SavedGames.Count}"; }
+
+        string fullPath = Path.Combine(Application.persistentDataPath, profileID, savedGame, Manager_Data.SaveFileName);
         string backupFilePath = fullPath + _backupExtension;
 
         try
@@ -232,8 +345,8 @@ public class FileDataHandler
 
             string dataToStore = JsonUtility.ToJson(data, true);
 
-            if (_useEncryption) dataToStore = EncryptDecrypt(dataToStore);
-            
+            if (_useEncryption) dataToStore = _encryptDecrypt(dataToStore);
+
             using (FileStream stream = new FileStream(fullPath, FileMode.Create))
             {
                 using (StreamWriter writer = new StreamWriter(stream))
@@ -242,8 +355,8 @@ public class FileDataHandler
                 }
             }
 
-            if (Load(profileID) != null) File.Copy(fullPath, backupFilePath, true);
-            
+            if (Load(savedGame, profileID) != null) File.Copy(fullPath, backupFilePath, true);
+
             else throw new Exception("Save file could not be verified and backup could not be created.");
         }
         catch (Exception e)
@@ -256,7 +369,7 @@ public class FileDataHandler
     {
         if (profileID == null) return;
 
-        string fullPath = Path.Combine(_directoryPath, profileID, _fileName);
+        string fullPath = Path.Combine(Application.persistentDataPath, profileID, Manager_Data.SaveFileName);
 
         try
         {
@@ -270,53 +383,7 @@ public class FileDataHandler
         }
     }
 
-    public Dictionary<string, GameData> LoadAllProfiles()
-    {
-        Dictionary<string, GameData> profileDictionary = new();
-
-        IEnumerable<DirectoryInfo> directoryInfoList = new DirectoryInfo(_directoryPath).EnumerateDirectories();
-
-        foreach (DirectoryInfo directoryInfo in directoryInfoList)
-        {
-            string profileID = directoryInfo.Name;
-
-            if (!File.Exists(Path.Combine(_directoryPath, profileID, _fileName)))
-            {
-                if (profileID != "Unity") Debug.LogWarning($"Directory: {_directoryPath} has no data: {profileID} for file: {_fileName}");
-                continue;
-            }
-
-            GameData profileData = Load(profileID);
-
-            if (profileData != null) profileDictionary.Add(profileID, profileData);
-
-            else Debug.LogError($"Profile data is null for profile: {profileID}");
-        }
-
-        return profileDictionary;
-    }
-
-    public string GetMostRecentlyUpdatedProfileID()
-    {
-        string mostRecentProfileID = null;
-
-        Dictionary<string, GameData> profilesGameData = LoadAllProfiles();
-
-        foreach (KeyValuePair<string, GameData> pair in profilesGameData)
-        {
-            string profileID = pair.Key;
-            GameData gameData = pair.Value;
-
-            if (gameData == null) continue;
-
-            if (mostRecentProfileID != null) { if (DateTime.FromBinary(gameData.LastUpdated) > DateTime.FromBinary(profilesGameData[mostRecentProfileID].LastUpdated)) mostRecentProfileID = profileID; }
-            else mostRecentProfileID = profileID;
-        }
-
-        return mostRecentProfileID;
-    }
-
-    private string EncryptDecrypt(string data)
+    string _encryptDecrypt(string data)
     {
         string modifiedData = "";
 
@@ -325,7 +392,7 @@ public class FileDataHandler
         return modifiedData;
     }
 
-    private bool AttemptRollback(string fullPath)
+    bool _attemptRollback(string fullPath)
     {
         bool success = false;
         string backupFilePath = fullPath + _backupExtension;
@@ -382,7 +449,7 @@ public class SerializableDictionary<TKey, TValue> : Dictionary<TKey, TValue>, IS
 public class GameData
 {
     public long LastUpdated;
-    public string CurrentProfile;
+    public string CurrentProfileName;
 
     public string SceneName;
     public string LastScene;
@@ -392,10 +459,10 @@ public class GameData
     public SerializableDictionary<string, string> QuestSaveData;
     public SerializableDictionary<string, string> PuzzleSaveData;
 
-    public GameData()
+    public GameData(string profile)
     {
         PlayerPosition = Vector3.zero;
-        CurrentProfile = "None";
+        CurrentProfileName = profile;
         StaffPickedUp = false;
         PuzzleSaveData = new();
         QuestSaveData = new();

@@ -19,32 +19,27 @@ public class Manager_Cutscene : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance == null) { Instance = this; DontDestroyOnLoad(gameObject); } else if (Instance != this) Destroy(gameObject);
-        SceneManager.sceneLoaded += OnSceneLoaded;
+        Instance = this;
+
         _initialiseScriptedCutscenes();
     }
 
-    public void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    public void OnSceneLoaded()
     {
         _director = GetComponent<PlayableDirector>();
 
-        if (ScriptedCutscenes.TryGetValue(scene.name, out List<Cutscene> cutscenes))
+        if (ScriptedCutscenes.TryGetValue(SceneManager.GetActiveScene().name, out List<Cutscene> cutscenes))
         {
             foreach(Cutscene cutscene in cutscenes)
             {
                 cutscene.SetDirector(GameObject.Find(cutscene.Name).GetComponent<PlayableDirector>());
 
-                if (cutscene.IsConditionsFulfilled(scene.name))
+                if (cutscene.IsConditionsFulfilled(SceneManager.GetActiveScene().name))
                 {
                     StartCoroutine(PlayCutscene(cutscene.Director));
                 }
             }
         }
-    }
-
-    void OnDestroy()
-    {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
     public IEnumerator PlayCutscene(PlayableDirector director)

@@ -29,7 +29,7 @@ public class SaveSlot : MonoBehaviour
         _profileID = profileID;
         _profileIDText.text = profileID;
         if (gameData != null) { _saveGameData = gameData; HasData = true; }
-        else _saveGameData = new GameData();
+        else _saveGameData = new GameData(_saveGameData.CurrentProfileName);
 
         _profileIDButton.onClick.AddListener(() =>
         {
